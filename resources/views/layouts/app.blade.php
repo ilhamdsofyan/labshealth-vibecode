@@ -351,6 +351,16 @@
             animation: fadeIn 0.3s ease-in;
         }
 
+        .master-async-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
@@ -429,6 +439,245 @@
             document.querySelector('.sidebar').classList.toggle('show');
             document.getElementById('sidebarOverlay').classList.toggle('show');
         }
+
+        function showAsyncAlert(type, message) {
+            const mainContent = document.querySelector('.main-content');
+            if (!mainContent) return;
+
+            const existing = document.getElementById('async-master-alert');
+            if (existing) existing.remove();
+
+            const icon = type === 'success' ? 'check-circle' : 'exclamation-triangle';
+            const alert = document.createElement('div');
+            alert.id = 'async-master-alert';
+            alert.className = `alert alert-${type} alert-dismissible fade show`;
+            alert.role = 'alert';
+            alert.innerHTML = `
+                <i class="bi bi-${icon} me-2"></i>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            mainContent.prepend(alert);
+        }
+
+        function getAsyncOverlayTarget(container) {
+            return container.querySelector('[data-master-async-table]') || container;
+        }
+
+        function toggleAsyncOverlay(container, isLoading) {
+            const target = getAsyncOverlayTarget(container);
+            if (!target) return;
+
+            const style = window.getComputedStyle(target);
+            if (style.position === 'static') {
+                target.style.position = 'relative';
+            }
+
+            let overlay = target.querySelector(':scope > .master-async-overlay');
+            if (!overlay && isLoading) {
+                overlay = document.createElement('div');
+                overlay.className = 'master-async-overlay';
+                overlay.innerHTML = `
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-2" role="status"></div>
+                        <div class="small text-muted">Memuat data...</div>
+                    </div>
+                `;
+                target.appendChild(overlay);
+            }
+
+            if (overlay) {
+                overlay.style.display = isLoading ? 'flex' : 'none';
+            }
+        }
+
+        function setFormSubmitting(form, isSubmitting) {
+            const submitButtons = form.querySelectorAll('button[type="submit"], input[type="submit"]');
+            submitButtons.forEach((btn) => {
+                if (!btn.dataset.originalHtml) {
+                    btn.dataset.originalHtml = btn.innerHTML;
+                }
+
+                if (isSubmitting) {
+                    btn.disabled = true;
+                    const loadingText = form.dataset.loadingText || 'Menyimpan...';
+                    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>${loadingText}`;
+                } else {
+                    btn.disabled = false;
+                    if (btn.dataset.originalHtml) {
+                        btn.innerHTML = btn.dataset.originalHtml;
+                    }
+                }
+            });
+        }
+
+        async function refreshMasterAsyncContainer(url = window.location.href, pushState = false) {
+            const containerSelector = '[data-master-async-container]';
+            const currentContainer = document.querySelector(containerSelector);
+            if (!currentContainer) return false;
+
+            toggleAsyncOverlay(currentContainer, true);
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Gagal memuat data.');
+                }
+
+                const html = await response.text();
+                const parsed = new DOMParser().parseFromString(html, 'text/html');
+                const incomingContainer = parsed.querySelector(containerSelector);
+
+                if (!incomingContainer) {
+                    throw new Error('Container data tidak ditemukan.');
+                }
+
+                currentContainer.innerHTML = incomingContainer.innerHTML;
+
+                if (pushState) {
+                    window.history.pushState({}, '', url);
+                }
+            } finally {
+                const activeContainer = document.querySelector(containerSelector);
+                if (activeContainer) {
+                    toggleAsyncOverlay(activeContainer, false);
+                }
+            }
+
+            return true;
+        }
+
+        window.refreshMasterAsyncContainer = refreshMasterAsyncContainer;
+
+        function clearFormValidation(form) {
+            form.querySelectorAll('.is-invalid').forEach((el) => el.classList.remove('is-invalid'));
+            form.querySelectorAll('.invalid-feedback.async-feedback').forEach((el) => el.remove());
+        }
+
+        function applyFormValidation(form, errors) {
+            Object.keys(errors || {}).forEach((field) => {
+                const input = form.querySelector(`[name="${field}"]`);
+                if (!input) return;
+
+                input.classList.add('is-invalid');
+
+                const feedback = document.createElement('div');
+                feedback.className = 'invalid-feedback async-feedback';
+                feedback.textContent = errors[field][0] || 'Input tidak valid';
+
+                if (input.nextElementSibling && input.nextElementSibling.classList.contains('invalid-feedback')) {
+                    input.nextElementSibling.remove();
+                }
+
+                input.insertAdjacentElement('afterend', feedback);
+            });
+        }
+
+        document.addEventListener('submit', async function (e) {
+            const form = e.target;
+            const isAsyncMaster = form.classList.contains('js-async-master');
+            const isAsyncDelete = form.classList.contains('js-async-delete');
+
+            if (!isAsyncMaster && !isAsyncDelete) return;
+
+            e.preventDefault();
+
+            if (isAsyncDelete) {
+                const confirmMessage = form.dataset.confirm || 'Yakin hapus data ini?';
+                if (!window.confirm(confirmMessage)) return;
+            }
+
+            clearFormValidation(form);
+            setFormSubmitting(form, true);
+
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const payload = new FormData(form);
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token || '',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: payload,
+                });
+
+                let body = {};
+                try { body = await response.json(); } catch (_) {}
+
+                if (response.status === 422) {
+                    applyFormValidation(form, body.errors || {});
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(body.message || 'Terjadi kesalahan saat memproses data.');
+                }
+
+                const modalEl = form.closest('.modal');
+                if (modalEl) {
+                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                    if (modalInstance) modalInstance.hide();
+                }
+
+                const successMessage = body.message || form.dataset.successMessage || 'Berhasil diproses.';
+                showAsyncAlert('success', successMessage);
+
+                const refreshed = await refreshMasterAsyncContainer(window.location.href, false);
+                if (!refreshed) {
+                    setTimeout(() => window.location.reload(), 250);
+                }
+            } catch (err) {
+                showAsyncAlert('danger', err.message || 'Terjadi kesalahan jaringan.');
+            } finally {
+                setFormSubmitting(form, false);
+            }
+        });
+
+        document.addEventListener('submit', async function (e) {
+            const form = e.target;
+            if (!form.classList.contains('js-async-search')) return;
+
+            e.preventDefault();
+            const action = form.getAttribute('action') || window.location.pathname;
+            const params = new URLSearchParams(new FormData(form)).toString();
+            const url = params ? `${action}?${params}` : action;
+
+            try {
+                await refreshMasterAsyncContainer(url, true);
+            } catch (err) {
+                showAsyncAlert('danger', err.message || 'Gagal memuat hasil pencarian.');
+            }
+        });
+
+        document.addEventListener('click', async function (e) {
+            const refreshLink = e.target.closest('a.js-async-refresh');
+            if (refreshLink) {
+                e.preventDefault();
+                try {
+                    await refreshMasterAsyncContainer(refreshLink.href, true);
+                } catch (err) {
+                    showAsyncAlert('danger', err.message || 'Gagal memuat ulang data.');
+                }
+                return;
+            }
+
+            const pageLink = e.target.closest('[data-master-async-container] .pagination a');
+            if (pageLink) {
+                e.preventDefault();
+                try {
+                    await refreshMasterAsyncContainer(pageLink.href, true);
+                } catch (err) {
+                    showAsyncAlert('danger', err.message || 'Gagal memuat halaman.');
+                }
+            }
+        });
 
         // Close sidebar on window resize to desktop
         window.addEventListener('resize', function() {

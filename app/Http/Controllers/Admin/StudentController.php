@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\StudentClassHistory;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -16,6 +17,7 @@ class StudentController extends Controller
         $q = $request->get('q');
         $students = Student::where('name', 'like', "%{$q}%")
             ->orWhere('nis', 'like', "%{$q}%")
+            ->orderBy('created_at', 'desc')
             ->with(['activeClass'])
             ->limit(10)
             ->get();
@@ -32,7 +34,10 @@ class StudentController extends Controller
 
     public function index(Request $request): View
     {
-        $query = Student::with(['activeClass']);
+        $query = Student::with(['activeClass' => function($q) {
+            $q->orderBy('class_name');
+        }]);
+
         $classSuggestions = StudentClassHistory::query()
             ->whereNotNull('class_name')
             ->where('class_name', '!=', '')
@@ -48,7 +53,8 @@ class StudentController extends Controller
             });
         }
 
-        $students = $query->paginate(15)->withQueryString();
+        $students = $query
+                        ->paginate(15)->withQueryString();
 
         return view('admin.master.students.index', compact('students', 'classSuggestions'));
     }
@@ -58,7 +64,7 @@ class StudentController extends Controller
         return redirect()->route('admin.master.students.index');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'nis' => ['required', 'string', 'unique:students,nis'],
@@ -80,6 +86,12 @@ class StudentController extends Controller
             'is_active' => true,
         ]);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Data siswa berhasil ditambahkan.',
+            ]);
+        }
+
         return redirect()->route('admin.master.students.index')
             ->with('success', 'Data siswa berhasil ditambahkan.');
     }
@@ -89,7 +101,7 @@ class StudentController extends Controller
         return redirect()->route('admin.master.students.index');
     }
 
-    public function update(Request $request, Student $student): RedirectResponse
+    public function update(Request $request, Student $student): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'nis' => ['required', 'string', 'unique:students,nis,' . $student->id],
@@ -116,13 +128,26 @@ class StudentController extends Controller
             ]);
         }
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Data siswa berhasil diperbarui.',
+            ]);
+        }
+
         return redirect()->route('admin.master.students.index')
             ->with('success', 'Data siswa berhasil diperbarui.');
     }
 
-    public function destroy(Student $student): RedirectResponse
+    public function destroy(Student $student): RedirectResponse|JsonResponse
     {
         $student->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'message' => 'Data siswa berhasil dihapus.',
+            ]);
+        }
+
         return redirect()->route('admin.master.students.index')
             ->with('success', 'Data siswa berhasil dihapus.');
     }

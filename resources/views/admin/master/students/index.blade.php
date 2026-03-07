@@ -22,95 +22,99 @@
     </div>
 @endif
 
-<div class="card mb-3">
-    <div class="card-body">
-        <form method="GET" action="{{ route('admin.master.students.index') }}">
-            <div class="row g-2">
-                <div class="col-md-4">
-                    <input type="text" name="search" class="form-control form-control-sm"
-                           placeholder="Cari NIS atau Nama..." value="{{ request('search') }}">
+<div data-master-async-container>
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="GET" action="{{ route('admin.master.students.index') }}" class="js-async-search">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <input type="text" name="search" class="form-control form-control-sm"
+                               placeholder="Cari NIS atau Nama..." value="{{ request('search') }}">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                    <div class="col-auto">
+                        <a href="{{ route('admin.master.students.index') }}" class="btn btn-outline-secondary btn-sm js-async-refresh">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </a>
+                    </div>
                 </div>
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-                <div class="col-auto">
-                    <a href="{{ route('admin.master.students.index') }}" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-arrow-clockwise"></i>
-                    </a>
-                </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
-</div>
 
-<div class="card">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="bg-light">
-                    <tr>
-                        <th width="80">NIS</th>
-                        <th>Nama</th>
-                        <th width="50">JK</th>
-                        <th>Kelas Aktif</th>
-                        <th>TS/Tahun Ajaran</th>
-                        <th width="120">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($students as $student)
+    <div class="card" data-master-async-table>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
                         <tr>
-                            <td class="small fw-bold">{{ $student->nis }}</td>
-                            <td>{{ $student->name }}</td>
-                            <td>{{ $student->gender }}</td>
-                            <td>{{ $student->activeClass?->class_name ?? '-' }}</td>
-                            <td class="small text-muted">{{ $student->activeClass?->academic_year ?? '-' }}</td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <button
-                                        type="button"
-                                        class="btn btn-outline-warning btn-edit-student"
-                                        data-id="{{ $student->id }}"
-                                        data-nis="{{ $student->nis }}"
-                                        data-name="{{ $student->name }}"
-                                        data-gender="{{ $student->gender }}"
-                                        data-class="{{ $student->activeClass?->class_name }}"
-                                        data-year="{{ $student->activeClass?->academic_year }}"
-                                    >
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <form action="{{ route('admin.master.students.destroy', $student) }}" method="POST"
-                                          onsubmit="return confirm('Yakin hapus data siswa ini?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
-                                    </form>
-                                </div>
-                            </td>
+                            <th width="80">NIS</th>
+                            <th>Nama</th>
+                            <th width="50">JK</th>
+                            <th>Kelas Aktif</th>
+                            <th>TS/Tahun Ajaran</th>
+                            <th width="120">Aksi</th>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="text-center text-muted py-5">
-                                Belum ada data siswa.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @forelse($students as $student)
+                            <tr>
+                                <td class="small fw-bold">{{ $student->nis }}</td>
+                                <td>{{ $student->name }}</td>
+                                <td>{{ $student->gender }}</td>
+                                <td>{{ $student->activeClass?->class_name ?? '-' }}</td>
+                                <td class="small text-muted">{{ $student->activeClass?->academic_year ?? '-' }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-warning btn-edit-student"
+                                            data-id="{{ $student->id }}"
+                                            data-nis="{{ $student->nis }}"
+                                            data-name="{{ $student->name }}"
+                                            data-gender="{{ $student->gender }}"
+                                            data-class="{{ $student->activeClass?->class_name }}"
+                                            data-year="{{ $student->activeClass?->academic_year }}"
+                                        >
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <form action="{{ route('admin.master.students.destroy', $student) }}" method="POST" class="js-async-delete"
+                                              data-loading-text="Menghapus..."
+                                              data-confirm="Yakin hapus data siswa ini?" data-success-message="Data siswa berhasil dihapus.">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-5">
+                                    Belum ada data siswa.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
+        @if($students->hasPages())
+            <div class="card-footer bg-transparent">
+                {{ $students->links() }}
+            </div>
+        @endif
     </div>
-    @if($students->hasPages())
-        <div class="card-footer bg-transparent">
-            {{ $students->links() }}
-        </div>
-    @endif
 </div>
 
 <div class="modal fade" id="createStudentModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form action="{{ route('admin.master.students.store') }}" method="POST">
+            <form action="{{ route('admin.master.students.store') }}" method="POST" class="js-async-master"
+                  data-success-message="Data siswa berhasil ditambahkan.">
                 @csrf
                 <div class="modal-header">
                     <h5 class="modal-title">Tambah Siswa</h5>
@@ -173,7 +177,8 @@
 <div class="modal fade" id="editStudentModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form id="editStudentForm" method="POST">
+            <form id="editStudentForm" method="POST" class="js-async-master"
+                  data-success-message="Data siswa berhasil diperbarui.">
                 @csrf
                 @method('PUT')
                 <input type="hidden" name="edit_id" id="edit_student_id" value="">

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -44,7 +45,8 @@ class EmployeeController extends Controller
             });
         }
 
-        $employees = $query->paginate(15)->withQueryString();
+        $employees = $query->orderBy('created_at', 'desc')
+                        ->paginate(15)->withQueryString();
 
         return view('admin.master.employees.index', compact('employees', 'departmentSuggestions'));
     }
@@ -54,7 +56,7 @@ class EmployeeController extends Controller
         return redirect()->route('admin.master.employees.index');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'nip' => ['required', 'string', 'unique:employees,nip'],
@@ -65,6 +67,12 @@ class EmployeeController extends Controller
 
         Employee::create($validated);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Data pegawai berhasil ditambahkan.',
+            ]);
+        }
+
         return redirect()->route('admin.master.employees.index')
             ->with('success', 'Data pegawai berhasil ditambahkan.');
     }
@@ -74,7 +82,7 @@ class EmployeeController extends Controller
         return redirect()->route('admin.master.employees.index');
     }
 
-    public function update(Request $request, Employee $employee): RedirectResponse
+    public function update(Request $request, Employee $employee): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'nip' => ['required', 'string', 'unique:employees,nip,' . $employee->id],
@@ -85,13 +93,26 @@ class EmployeeController extends Controller
 
         $employee->update($validated);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Data pegawai berhasil diperbarui.',
+            ]);
+        }
+
         return redirect()->route('admin.master.employees.index')
             ->with('success', 'Data pegawai berhasil diperbarui.');
     }
 
-    public function destroy(Employee $employee): RedirectResponse
+    public function destroy(Employee $employee): RedirectResponse|JsonResponse
     {
         $employee->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'message' => 'Data pegawai berhasil dihapus.',
+            ]);
+        }
+
         return redirect()->route('admin.master.employees.index')
             ->with('success', 'Data pegawai berhasil dihapus.');
     }

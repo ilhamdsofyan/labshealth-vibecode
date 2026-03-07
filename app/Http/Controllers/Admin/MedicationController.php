@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Medication;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -13,7 +14,7 @@ class MedicationController extends Controller
     public function search(Request $request)
     {
         $q = $request->get('q');
-        $medications = Medication::where('name', 'like', "%{$q}%")
+        $medications = Medication::where('name', 'like', "%{$q}%")                                                  
             ->limit(10)
             ->get();
 
@@ -41,7 +42,8 @@ class MedicationController extends Controller
                 ->orWhere('category', 'like', "%{$search}%");
         }
 
-        $medications = $query->paginate(15)->withQueryString();
+        $medications = $query->orderBy('created_at', 'desc')
+                        ->paginate(15)->withQueryString();
 
         return view('admin.master.medications.index', compact('medications', 'categorySuggestions'));
     }
@@ -51,7 +53,7 @@ class MedicationController extends Controller
         return redirect()->route('admin.master.medications.index');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:medications,name'],
@@ -59,6 +61,12 @@ class MedicationController extends Controller
         ]);
 
         Medication::create($validated);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Data obat berhasil ditambahkan.',
+            ]);
+        }
 
         return redirect()->route('admin.master.medications.index')
             ->with('success', 'Data obat berhasil ditambahkan.');
@@ -74,7 +82,7 @@ class MedicationController extends Controller
         return redirect()->route('admin.master.medications.index');
     }
 
-    public function update(Request $request, Medication $medication): RedirectResponse
+    public function update(Request $request, Medication $medication): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:medications,name,' . $medication->id],
@@ -83,13 +91,25 @@ class MedicationController extends Controller
 
         $medication->update($validated);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Data obat berhasil diperbarui.',
+            ]);
+        }
+
         return redirect()->route('admin.master.medications.index')
             ->with('success', 'Data obat berhasil diperbarui.');
     }
 
-    public function destroy(Medication $medication): RedirectResponse
+    public function destroy(Medication $medication): RedirectResponse|JsonResponse
     {
         $medication->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'message' => 'Data obat berhasil dihapus.',
+            ]);
+        }
 
         return redirect()->route('admin.master.medications.index')
             ->with('success', 'Data obat berhasil dihapus.');

@@ -22,94 +22,98 @@
     </div>
 @endif
 
-<div class="card mb-3">
-    <div class="card-body">
-        <form method="GET" action="{{ route('admin.master.medications.index') }}">
-            <div class="row g-2">
-                <div class="col-md-4">
-                    <input type="text" name="search" class="form-control form-control-sm"
-                           placeholder="Cari nama obat atau kategori..." value="{{ request('search') }}">
+<div data-master-async-container>
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="GET" action="{{ route('admin.master.medications.index') }}" class="js-async-search">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <input type="text" name="search" class="form-control form-control-sm"
+                               placeholder="Cari nama obat atau kategori..." value="{{ request('search') }}">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                    <div class="col-auto">
+                        <a href="{{ route('admin.master.medications.index') }}" class="btn btn-outline-secondary btn-sm js-async-refresh">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </a>
+                    </div>
                 </div>
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-                <div class="col-auto">
-                    <a href="{{ route('admin.master.medications.index') }}" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-arrow-clockwise"></i>
-                    </a>
-                </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
-</div>
 
-<div class="card">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="bg-light">
-                    <tr>
-                        <th width="50">No</th>
-                        <th>Nama Obat / Item</th>
-                        <th>Kategori</th>
-                        <th width="120">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($medications as $index => $medication)
+    <div class="card" data-master-async-table>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
                         <tr>
-                            <td>{{ $medications->firstItem() + $index }}</td>
-                            <td class="fw-bold">{{ $medication->name }}</td>
-                            <td>
-                                @if($medication->category)
-                                    <span class="badge bg-light text-dark border">{{ $medication->category }}</span>
-                                @else
-                                    <span class="text-muted small">-</span>
-                                @endif
-                            </td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <button
-                                        type="button"
-                                        class="btn btn-outline-warning btn-edit-medication"
-                                        data-id="{{ $medication->id }}"
-                                        data-name="{{ $medication->name }}"
-                                        data-category="{{ $medication->category }}"
-                                    >
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <form action="{{ route('admin.master.medications.destroy', $medication) }}" method="POST"
-                                          onsubmit="return confirm('Yakin hapus data obat ini?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
-                                    </form>
-                                </div>
-                            </td>
+                            <th width="50">No</th>
+                            <th>Nama Obat / Item</th>
+                            <th>Kategori</th>
+                            <th width="120">Aksi</th>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" class="text-center text-muted py-5">
-                                Belum ada data obat.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @forelse($medications as $index => $medication)
+                            <tr>
+                                <td>{{ $medications->firstItem() + $index }}</td>
+                                <td class="fw-bold">{{ $medication->name }}</td>
+                                <td>
+                                    @if($medication->category)
+                                        <span class="badge bg-light text-dark border">{{ $medication->category }}</span>
+                                    @else
+                                        <span class="text-muted small">-</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-warning btn-edit-medication"
+                                            data-id="{{ $medication->id }}"
+                                            data-name="{{ $medication->name }}"
+                                            data-category="{{ $medication->category }}"
+                                        >
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <form action="{{ route('admin.master.medications.destroy', $medication) }}" method="POST" class="js-async-delete"
+                                              data-loading-text="Menghapus..."
+                                              data-confirm="Yakin hapus data obat ini?" data-success-message="Data obat berhasil dihapus.">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-5">
+                                    Belum ada data obat.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
+        @if($medications->hasPages())
+            <div class="card-footer bg-transparent">
+                {{ $medications->links() }}
+            </div>
+        @endif
     </div>
-    @if($medications->hasPages())
-        <div class="card-footer bg-transparent">
-            {{ $medications->links() }}
-        </div>
-    @endif
 </div>
 
 <div class="modal fade" id="createMedicationModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form action="{{ route('admin.master.medications.store') }}" method="POST">
+            <form action="{{ route('admin.master.medications.store') }}" method="POST" class="js-async-master"
+                  data-success-message="Data obat berhasil ditambahkan.">
                 @csrf
                 <div class="modal-header">
                     <h5 class="modal-title">Tambah Obat</h5>
@@ -145,7 +149,8 @@
 <div class="modal fade" id="editMedicationModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form id="editMedicationForm" method="POST">
+            <form id="editMedicationForm" method="POST" class="js-async-master"
+                  data-success-message="Data obat berhasil diperbarui.">
                 @csrf
                 @method('PUT')
                 <input type="hidden" name="edit_id" id="edit_medication_id" value="">

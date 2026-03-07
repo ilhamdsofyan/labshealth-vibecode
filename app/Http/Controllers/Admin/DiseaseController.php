@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Disease;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -14,6 +15,7 @@ class DiseaseController extends Controller
     {
         $q = $request->get('q');
         $diseases = Disease::where('name', 'like', "%{$q}%")
+            ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
 
@@ -32,7 +34,6 @@ class DiseaseController extends Controller
             ->whereNotNull('category')
             ->where('category', '!=', '')
             ->distinct()
-            ->orderBy('category')
             ->pluck('category');
 
         if ($request->filled('search')) {
@@ -41,7 +42,8 @@ class DiseaseController extends Controller
                   ->orWhere('category', 'like', "%{$search}%");
         }
 
-        $diseases = $query->paginate(15)->withQueryString();
+        $diseases = $query->orderBy('created_at', 'desc')
+            ->paginate(15)->withQueryString();
 
         return view('admin.master.diseases.index', compact('diseases', 'categorySuggestions'));
     }
@@ -51,7 +53,7 @@ class DiseaseController extends Controller
         return redirect()->route('admin.master.diseases.index');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:diseases,name'],
@@ -59,6 +61,12 @@ class DiseaseController extends Controller
         ]);
 
         Disease::create($validated);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Data penyakit berhasil ditambahkan.',
+            ]);
+        }
 
         return redirect()->route('admin.master.diseases.index')
             ->with('success', 'Data penyakit berhasil ditambahkan.');
@@ -69,7 +77,7 @@ class DiseaseController extends Controller
         return redirect()->route('admin.master.diseases.index');
     }
 
-    public function update(Request $request, Disease $disease): RedirectResponse
+    public function update(Request $request, Disease $disease): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:diseases,name,' . $disease->id],
@@ -78,13 +86,26 @@ class DiseaseController extends Controller
 
         $disease->update($validated);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Data penyakit berhasil diperbarui.',
+            ]);
+        }
+
         return redirect()->route('admin.master.diseases.index')
             ->with('success', 'Data penyakit berhasil diperbarui.');
     }
 
-    public function destroy(Disease $disease): RedirectResponse
+    public function destroy(Disease $disease): RedirectResponse|JsonResponse
     {
         $disease->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'message' => 'Data penyakit berhasil dihapus.',
+            ]);
+        }
+
         return redirect()->route('admin.master.diseases.index')
             ->with('success', 'Data penyakit berhasil dihapus.');
     }
