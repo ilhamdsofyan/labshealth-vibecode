@@ -9,9 +9,9 @@
         <p class="text-muted mb-0 small">Kelola data siswa (SMA)</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="{{ route('admin.master.students.create') }}" class="btn btn-primary">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createStudentModal">
             <i class="bi bi-plus-lg me-1"></i>Tambah Siswa
-        </a>
+        </button>
     </div>
 </div>
 
@@ -27,7 +27,7 @@
         <form method="GET" action="{{ route('admin.master.students.index') }}">
             <div class="row g-2">
                 <div class="col-md-4">
-                    <input type="text" name="search" class="form-control form-control-sm" 
+                    <input type="text" name="search" class="form-control form-control-sm"
                            placeholder="Cari NIS atau Nama..." value="{{ request('search') }}">
                 </div>
                 <div class="col-auto">
@@ -69,9 +69,18 @@
                             <td class="small text-muted">{{ $student->activeClass?->academic_year ?? '-' }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('admin.master.students.edit', $student) }}" class="btn btn-outline-warning">
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-warning btn-edit-student"
+                                        data-id="{{ $student->id }}"
+                                        data-nis="{{ $student->nis }}"
+                                        data-name="{{ $student->name }}"
+                                        data-gender="{{ $student->gender }}"
+                                        data-class="{{ $student->activeClass?->class_name }}"
+                                        data-year="{{ $student->activeClass?->academic_year }}"
+                                    >
                                         <i class="bi bi-pencil"></i>
-                                    </a>
+                                    </button>
                                     <form action="{{ route('admin.master.students.destroy', $student) }}" method="POST"
                                           onsubmit="return confirm('Yakin hapus data siswa ini?')">
                                         @csrf @method('DELETE')
@@ -97,4 +106,180 @@
         </div>
     @endif
 </div>
+
+<div class="modal fade" id="createStudentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('admin.master.students.store') }}" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Tambah Siswa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">NIS <span class="text-danger">*</span></label>
+                        <input type="text" name="nis" class="form-control @error('nis') is-invalid @enderror"
+                               value="{{ old('edit_id') ? '' : old('nis') }}" required>
+                        @if($errors->any() && !old('edit_id'))
+                            @error('nis') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @endif
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Nama Lengkap <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
+                               value="{{ old('edit_id') ? '' : old('name') }}" required>
+                        @if($errors->any() && !old('edit_id'))
+                            @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @endif
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Jenis Kelamin <span class="text-danger">*</span></label>
+                        <select name="gender" class="form-select @error('gender') is-invalid @enderror" required>
+                            <option value="">Pilih</option>
+                            <option value="L" {{ (!old('edit_id') && old('gender') === 'L') ? 'selected' : '' }}>L</option>
+                            <option value="P" {{ (!old('edit_id') && old('gender') === 'P') ? 'selected' : '' }}>P</option>
+                        </select>
+                        @if($errors->any() && !old('edit_id'))
+                            @error('gender') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @endif
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Kelas Aktif <span class="text-danger">*</span></label>
+                        <input type="text" name="class_name" class="form-control @error('class_name') is-invalid @enderror"
+                               value="{{ old('edit_id') ? '' : old('class_name') }}" list="studentClassSuggestions" required>
+                        @if($errors->any() && !old('edit_id'))
+                            @error('class_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @endif
+                    </div>
+                    <div>
+                        <label class="form-label small fw-semibold">Tahun Ajaran <span class="text-danger">*</span></label>
+                        <input type="text" name="academic_year" class="form-control @error('academic_year') is-invalid @enderror"
+                               value="{{ old('edit_id') ? '' : old('academic_year') }}" placeholder="Contoh: 2025/2026" required>
+                        @if($errors->any() && !old('edit_id'))
+                            @error('academic_year') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @endif
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editStudentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editStudentForm" method="POST">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="edit_id" id="edit_student_id" value="">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Siswa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">NIS <span class="text-danger">*</span></label>
+                        <input type="text" id="edit_student_nis" name="nis" class="form-control @error('nis') is-invalid @enderror" required>
+                        @if($errors->any() && old('edit_id'))
+                            @error('nis') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @endif
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Nama Lengkap <span class="text-danger">*</span></label>
+                        <input type="text" id="edit_student_name" name="name" class="form-control @error('name') is-invalid @enderror" required>
+                        @if($errors->any() && old('edit_id'))
+                            @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @endif
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Jenis Kelamin <span class="text-danger">*</span></label>
+                        <select id="edit_student_gender" name="gender" class="form-select @error('gender') is-invalid @enderror" required>
+                            <option value="">Pilih</option>
+                            <option value="L">L</option>
+                            <option value="P">P</option>
+                        </select>
+                        @if($errors->any() && old('edit_id'))
+                            @error('gender') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @endif
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Kelas Aktif <span class="text-danger">*</span></label>
+                        <input type="text" id="edit_student_class" name="class_name" class="form-control @error('class_name') is-invalid @enderror" list="studentClassSuggestions" required>
+                        @if($errors->any() && old('edit_id'))
+                            @error('class_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @endif
+                    </div>
+                    <div>
+                        <label class="form-label small fw-semibold">Tahun Ajaran <span class="text-danger">*</span></label>
+                        <input type="text" id="edit_student_year" name="academic_year" class="form-control @error('academic_year') is-invalid @enderror" required>
+                        @if($errors->any() && old('edit_id'))
+                            @error('academic_year') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @endif
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Perbarui</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<datalist id="studentClassSuggestions">
+    @foreach($classSuggestions as $className)
+        <option value="{{ $className }}"></option>
+    @endforeach
+</datalist>
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const editModalEl = document.getElementById('editStudentModal');
+        const editModal = new bootstrap.Modal(editModalEl);
+        const editForm = document.getElementById('editStudentForm');
+
+        const fields = {
+            id: document.getElementById('edit_student_id'),
+            nis: document.getElementById('edit_student_nis'),
+            name: document.getElementById('edit_student_name'),
+            gender: document.getElementById('edit_student_gender'),
+            className: document.getElementById('edit_student_class'),
+            year: document.getElementById('edit_student_year'),
+        };
+
+        document.querySelectorAll('.btn-edit-student').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const id = this.dataset.id;
+                editForm.action = "{{ url('admin/master/students') }}/" + id;
+                fields.id.value = id;
+                fields.nis.value = this.dataset.nis || '';
+                fields.name.value = this.dataset.name || '';
+                fields.gender.value = this.dataset.gender || '';
+                fields.className.value = this.dataset.class || '';
+                fields.year.value = this.dataset.year || '';
+                editModal.show();
+            });
+        });
+
+        @if($errors->any() && old('edit_id'))
+            editForm.action = "{{ url('admin/master/students') }}/{{ old('edit_id') }}";
+            fields.id.value = "{{ old('edit_id') }}";
+            fields.nis.value = @json(old('nis'));
+            fields.name.value = @json(old('name'));
+            fields.gender.value = @json(old('gender'));
+            fields.className.value = @json(old('class_name'));
+            fields.year.value = @json(old('academic_year'));
+            editModal.show();
+        @elseif($errors->any())
+            new bootstrap.Modal(document.getElementById('createStudentModal')).show();
+        @endif
+    });
+</script>
+@endpush
 @endsection

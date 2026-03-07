@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Student;
+use App\Models\StudentClassHistory;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -32,6 +33,12 @@ class StudentController extends Controller
     public function index(Request $request): View
     {
         $query = Student::with(['activeClass']);
+        $classSuggestions = StudentClassHistory::query()
+            ->whereNotNull('class_name')
+            ->where('class_name', '!=', '')
+            ->distinct()
+            ->orderBy('class_name')
+            ->pluck('class_name');
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -43,12 +50,12 @@ class StudentController extends Controller
 
         $students = $query->paginate(15)->withQueryString();
 
-        return view('admin.master.students.index', compact('students'));
+        return view('admin.master.students.index', compact('students', 'classSuggestions'));
     }
 
-    public function create(): View
+    public function create(): RedirectResponse
     {
-        return view('admin.master.students.create');
+        return redirect()->route('admin.master.students.index');
     }
 
     public function store(Request $request): RedirectResponse
@@ -77,10 +84,9 @@ class StudentController extends Controller
             ->with('success', 'Data siswa berhasil ditambahkan.');
     }
 
-    public function edit(Student $student): View
+    public function edit(Student $student): RedirectResponse
     {
-        $student->load('activeClass');
-        return view('admin.master.students.edit', compact('student'));
+        return redirect()->route('admin.master.students.index');
     }
 
     public function update(Request $request, Student $student): RedirectResponse

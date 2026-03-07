@@ -28,6 +28,12 @@ class MedicationController extends Controller
     public function index(Request $request): View
     {
         $query = Medication::query();
+        $categorySuggestions = Medication::query()
+            ->whereNotNull('category')
+            ->where('category', '!=', '')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -37,12 +43,12 @@ class MedicationController extends Controller
 
         $medications = $query->paginate(15)->withQueryString();
 
-        return view('admin.master.medications.index', compact('medications'));
+        return view('admin.master.medications.index', compact('medications', 'categorySuggestions'));
     }
 
-    public function create(): View
+    public function create(): RedirectResponse
     {
-        return view('admin.master.medications.create');
+        return redirect()->route('admin.master.medications.index');
     }
 
     public function store(Request $request): RedirectResponse
@@ -58,14 +64,14 @@ class MedicationController extends Controller
             ->with('success', 'Data obat berhasil ditambahkan.');
     }
 
-    public function edit(Medication $medication): View
+    public function edit(Medication $medication): RedirectResponse
     {
-        return view('admin.master.medications.edit', compact('medication'));
+        return redirect()->route('admin.master.medications.index');
     }
 
     public function show(Medication $medication): RedirectResponse
     {
-        return redirect()->route('admin.master.medications.edit', $medication);
+        return redirect()->route('admin.master.medications.index');
     }
 
     public function update(Request $request, Medication $medication): RedirectResponse

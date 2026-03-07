@@ -29,6 +29,12 @@ class EmployeeController extends Controller
     public function index(Request $request): View
     {
         $query = Employee::query();
+        $departmentSuggestions = Employee::query()
+            ->whereNotNull('department')
+            ->where('department', '!=', '')
+            ->distinct()
+            ->orderBy('department')
+            ->pluck('department');
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -40,12 +46,12 @@ class EmployeeController extends Controller
 
         $employees = $query->paginate(15)->withQueryString();
 
-        return view('admin.master.employees.index', compact('employees'));
+        return view('admin.master.employees.index', compact('employees', 'departmentSuggestions'));
     }
 
-    public function create(): View
+    public function create(): RedirectResponse
     {
-        return view('admin.master.employees.create');
+        return redirect()->route('admin.master.employees.index');
     }
 
     public function store(Request $request): RedirectResponse
@@ -63,9 +69,9 @@ class EmployeeController extends Controller
             ->with('success', 'Data pegawai berhasil ditambahkan.');
     }
 
-    public function edit(Employee $employee): View
+    public function edit(Employee $employee): RedirectResponse
     {
-        return view('admin.master.employees.edit', compact('employee'));
+        return redirect()->route('admin.master.employees.index');
     }
 
     public function update(Request $request, Employee $employee): RedirectResponse

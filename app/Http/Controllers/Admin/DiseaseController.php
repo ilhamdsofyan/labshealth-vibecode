@@ -28,6 +28,12 @@ class DiseaseController extends Controller
     public function index(Request $request): View
     {
         $query = Disease::query();
+        $categorySuggestions = Disease::query()
+            ->whereNotNull('category')
+            ->where('category', '!=', '')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -37,12 +43,12 @@ class DiseaseController extends Controller
 
         $diseases = $query->paginate(15)->withQueryString();
 
-        return view('admin.master.diseases.index', compact('diseases'));
+        return view('admin.master.diseases.index', compact('diseases', 'categorySuggestions'));
     }
 
-    public function create(): View
+    public function create(): RedirectResponse
     {
-        return view('admin.master.diseases.create');
+        return redirect()->route('admin.master.diseases.index');
     }
 
     public function store(Request $request): RedirectResponse
@@ -58,9 +64,9 @@ class DiseaseController extends Controller
             ->with('success', 'Data penyakit berhasil ditambahkan.');
     }
 
-    public function edit(Disease $disease): View
+    public function edit(Disease $disease): RedirectResponse
     {
-        return view('admin.master.diseases.edit', compact('disease'));
+        return redirect()->route('admin.master.diseases.index');
     }
 
     public function update(Request $request, Disease $disease): RedirectResponse
