@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\VisitRequest;
 use App\Models\Visit;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -124,9 +125,15 @@ class VisitController extends Controller
             ->with('success', 'Data kunjungan berhasil diperbarui.');
     }
 
-    public function destroy(Visit $visit): RedirectResponse
+    public function destroy(Visit $visit): RedirectResponse|JsonResponse
     {
         $visit->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'message' => 'Data kunjungan berhasil dihapus.',
+            ]);
+        }
 
         return redirect()->route('visits.index')
             ->with('success', 'Data kunjungan berhasil dihapus.');
