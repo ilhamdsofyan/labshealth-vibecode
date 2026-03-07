@@ -25,11 +25,9 @@ class ImportController extends Controller
             'type' => 'required|in:visits,students,employees,diseases,medications'
         ]);
 
-        
-
         $file = $request->file('file');
         $type = $request->input('type');
-        
+
         $log = ImportLog::create([
             'file_name' => "[{$type}] " . $file->getClientOriginalName(),
             'total_rows' => 0, 

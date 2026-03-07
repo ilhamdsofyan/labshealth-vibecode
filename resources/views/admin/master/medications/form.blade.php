@@ -18,14 +18,14 @@
                 <div class="col-md-8">
                     <label class="form-label small fw-semibold">Nama Obat <span class="text-danger">*</span></label>
                     <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
-                           value="{{ old('name', $medication->name ?? '') }}" required>
+                           value="{{ old('name', $medication->name ?? '') }}" placeholder="Contoh: Paracetamol 500mg / Betadine" required>
                     @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="col-md-4">
                     <label class="form-label small fw-semibold">Kategori</label>
                     <input type="text" name="category" class="form-control @error('category') is-invalid @enderror"
-                           value="{{ old('category', $medication->category ?? '') }}" placeholder="Contoh: Tablet / Sirup">
+                           value="{{ old('category', $medication->category ?? '') }}" placeholder="Contoh: Antipiretik / Antihistamin / Topikal">
                     @error('category') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
             </div>
@@ -39,4 +39,3 @@
     </div>
 </div>
 @endsection
-
