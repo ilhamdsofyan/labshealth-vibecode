@@ -1,0 +1,91 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Medication;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+
+class MedicationController extends Controller
+{
+    public function search(Request $request)
+    {
+        $q = $request->get('q');
+        $medications = Medication::where('name', 'like', "%{$q}%")
+            ->limit(10)
+            ->get();
+
+        return response()->json($medications->map(function ($m) {
+            return [
+                'id' => $m->id,
+                'text' => $m->name,
+            ];
+        }));
+    }
+
+    public function index(Request $request): View
+    {
+        $query = Medication::query();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('name', 'like', "%{$search}%")
+                ->orWhere('category', 'like', "%{$search}%");
+        }
+
+        $medications = $query->paginate(15)->withQueryString();
+
+        return view('admin.master.medications.index', compact('medications'));
+    }
+
+    public function create(): View
+    {
+        return view('admin.master.medications.create');
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:medications,name'],
+            'category' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        Medication::create($validated);
+
+        return redirect()->route('admin.master.medications.index')
+            ->with('success', 'Data obat berhasil ditambahkan.');
+    }
+
+    public function edit(Medication $medication): View
+    {
+        return view('admin.master.medications.edit', compact('medication'));
+    }
+
+    public function show(Medication $medication): RedirectResponse
+    {
+        return redirect()->route('admin.master.medications.edit', $medication);
+    }
+
+    public function update(Request $request, Medication $medication): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:medications,name,' . $medication->id],
+            'category' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $medication->update($validated);
+
+        return redirect()->route('admin.master.medications.index')
+            ->with('success', 'Data obat berhasil diperbarui.');
+    }
+
+    public function destroy(Medication $medication): RedirectResponse
+    {
+        $medication->delete();
+
+        return redirect()->route('admin.master.medications.index')
+            ->with('success', 'Data obat berhasil dihapus.');
+    }
+}

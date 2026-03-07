@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline — LabsHealth UKS</title>
+    <style>
+        * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 0; }
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
+            color: #334155;
+        }
+        .container { text-align: center; padding: 2rem; }
+        .icon { font-size: 4rem; margin-bottom: 1rem; opacity: 0.6; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+        p { color: #64748B; margin-bottom: 1.5rem; }
+        .btn {
+            display: inline-block;
+            padding: 0.6rem 1.5rem;
+            background: #4F46E5;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .btn:hover { background: #4338CA; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">📡</div>
+        <h1>Anda Sedang Offline</h1>
+        <p>Periksa koneksi internet Anda dan coba lagi.</p>
+        <button class="btn" onclick="window.location.reload()">Coba Lagi</button>
+    </div>
+</body>
+</html>
