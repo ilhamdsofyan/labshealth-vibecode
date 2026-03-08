@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\ClinicAgendaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\VisitController;
@@ -34,6 +35,9 @@ Route::middleware(['auth', 'permission'])->group(function () {
 
     // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('agendas', [ClinicAgendaController::class, 'index'])->name('agendas.index');
+    Route::get('agendas/create', [ClinicAgendaController::class, 'create'])->name('agendas.create');
+    Route::post('agendas', [ClinicAgendaController::class, 'store'])->name('agendas.store');
 
     // Visit Recording
     Route::resource('visits', VisitController::class);

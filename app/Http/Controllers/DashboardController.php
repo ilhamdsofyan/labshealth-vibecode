@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ClinicAgenda;
 use App\Models\Visit;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -48,11 +49,12 @@ class DashboardController extends Controller
             ->pluck('count', 'visit_date')
             ->toArray();
 
-        $calendarCounts = Visit::whereBetween('visit_date', [$startOfMonth, $endOfMonth])
-            ->selectRaw('visit_date, COUNT(*) as count')
-            ->groupBy('visit_date')
-            ->pluck('count', 'visit_date')
-            ->toArray();
+        $agendas = ClinicAgenda::query()
+            ->whereBetween('agenda_date', [$startOfMonth, $endOfMonth])
+            ->orderBy('agenda_date')
+            ->orderBy('agenda_time')
+            ->limit(6)
+            ->get();
 
         $availableYears = Visit::selectRaw('YEAR(visit_date) as year')
             ->distinct()
@@ -75,7 +77,7 @@ class DashboardController extends Controller
             'categoryStats',
             'recentVisits',
             'monthlyTrend',
-            'calendarCounts',
+            'agendas',
             'selectedMonth',
             'selectedYear',
             'availableYears',

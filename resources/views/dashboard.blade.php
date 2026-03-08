@@ -38,25 +38,6 @@
     }
     $donutGradient = 'conic-gradient(' . implode(', ', $segments) . ')';
 
-    $startCalendar = now()->setYear($selectedYear)->setMonth($selectedMonth)->startOfMonth();
-    $endCalendar = $startCalendar->copy()->endOfMonth();
-
-    $calendarCells = [];
-    $leadingBlanks = $startCalendar->dayOfWeekIso - 1;
-    for ($i = 0; $i < $leadingBlanks; $i++) {
-        $calendarCells[] = null;
-    }
-
-    for ($day = 1; $day <= $endCalendar->day; $day++) {
-        $date = $startCalendar->copy()->day($day);
-        $key = $date->toDateString();
-        $calendarCells[] = [
-            'day' => $day,
-            'date' => $key,
-            'count' => $calendarCounts[$key] ?? 0,
-            'is_today' => $key === now()->toDateString(),
-        ];
-    }
 @endphp
 
 <style>
@@ -124,21 +105,22 @@
     .legend-label { display:flex; align-items:center; gap: 0.5rem; font-size: 0.86rem; }
     .legend-dot { width: 10px; height: 10px; border-radius: 999px; }
 
-    .calendar-grid { display:grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.35rem; }
-    .cal-day-head { font-size: 0.72rem; color: var(--text-muted); text-align: center; font-weight: 700; }
-    .cal-cell {
-        min-height: 54px; border: 1px solid var(--border); border-radius: 10px;
-        padding: 0.3rem; font-size: 0.76rem; background: var(--bg-surface);
+    .agenda-table td { font-size: 0.82rem; padding-top: 0.45rem; padding-bottom: 0.45rem; }
+    .agenda-date-pill {
+        width: 44px; min-width: 44px; height: 44px;
+        border-radius: 10px;
+        display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+        background: color-mix(in srgb, var(--primary) 12%, var(--bg-surface));
+        color: var(--primary);
+        border: 1px solid color-mix(in srgb, var(--primary) 45%, var(--border));
+        line-height: 1;
     }
-    .cal-cell.blank { border-style: dashed; opacity: 0.5; }
-    .cal-cell.today { border-color: var(--primary); }
-    .cal-count { font-size: 0.65rem; color: var(--primary); font-weight: 700; }
+    .agenda-date-pill small { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; }
+    .agenda-date-pill strong { font-size: 1rem; font-weight: 800; margin-top: 0.1rem; }
 
     html[data-theme='dark'] .hero-title { color: #f8fbff; }
     html[data-theme='dark'] .hero-subtitle { color: #c6d2ea; }
     html[data-theme='dark'] .legend-label,
-    html[data-theme='dark'] .cal-day-head,
-    html[data-theme='dark'] .cal-cell,
     html[data-theme='dark'] .section-head .small {
         color: #cfd9ee;
     }
@@ -266,28 +248,35 @@
         <div class="col-xl-4">
             <div class="card section-card h-100">
                 <div class="section-head">
-                    <h6 class="mb-0 fw-bold">Kalender Klinik</h6>
-                    <span class="small text-muted">{{ $monthNames[$selectedMonth] }} {{ $selectedYear }}</span>
+                    <h6 class="mb-0 fw-bold">Agenda Klinik</h6>
+                    <a href="{{ route('agendas.index') }}" class="btn btn-sm btn-outline-primary">Lihat semua</a>
                 </div>
                 <div class="section-body">
-                    <div class="calendar-grid mb-2">
-                        @foreach(['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'] as $day)
-                            <div class="cal-day-head">{{ $day }}</div>
-                        @endforeach
-                    </div>
-                    <div class="calendar-grid">
-                        @foreach($calendarCells as $cell)
-                            @if(!$cell)
-                                <div class="cal-cell blank"></div>
-                            @else
-                                <div class="cal-cell {{ $cell['is_today'] ? 'today' : '' }}">
-                                    <div class="fw-semibold">{{ $cell['day'] }}</div>
-                                    @if($cell['count'] > 0)
-                                        <div class="cal-count">{{ $cell['count'] }} kunj.</div>
-                                    @endif
-                                </div>
-                            @endif
-                        @endforeach
+                    <div class="table-responsive">
+                        <table class="table agenda-table mb-0">
+                            <tbody>
+                                @forelse($agendas as $agenda)
+                                    <tr>
+                                        <td width="56">
+                                            <span class="agenda-date-pill">
+                                                <small>{{ strtoupper($agenda->agenda_date->translatedFormat('M')) }}</small>
+                                                <strong>{{ $agenda->agenda_date->format('d') }}</strong>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold">{{ $agenda->title }}</div>
+                                            <div class="small text-muted">
+                                                {{ $agenda->agenda_time ? \Illuminate\Support\Carbon::parse($agenda->agenda_time)->format('H:i') . ' • ' : '' }}{{ $agenda->location ?: 'Lokasi belum diisi' }}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="2" class="text-center text-muted py-4">Belum ada agenda bulan ini.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
