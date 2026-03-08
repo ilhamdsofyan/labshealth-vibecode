@@ -3,15 +3,28 @@
 namespace App\Http\Controllers;
 
 use App\Models\Visit;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $selectedMonth = (int) $request->input('month', now()->month);
+        $selectedYear = (int) $request->input('year', now()->year);
+
+        if ($selectedMonth < 1 || $selectedMonth > 12) {
+            $selectedMonth = now()->month;
+        }
+
+        if ($selectedYear < 2000 || $selectedYear > 2100) {
+            $selectedYear = now()->year;
+        }
+
+        $selectedDate = now()->setYear($selectedYear)->setMonth($selectedMonth);
         $today = now()->toDateString();
-        $startOfMonth = now()->startOfMonth()->toDateString();
-        $endOfMonth = now()->endOfMonth()->toDateString();
+        $startOfMonth = $selectedDate->copy()->startOfMonth()->toDateString();
+        $endOfMonth = $selectedDate->copy()->endOfMonth()->toDateString();
 
         $todayVisits = Visit::where('visit_date', $today)->count();
         $monthVisits = Visit::whereBetween('visit_date', [$startOfMonth, $endOfMonth])->count();
@@ -35,12 +48,39 @@ class DashboardController extends Controller
             ->pluck('count', 'visit_date')
             ->toArray();
 
+        $calendarCounts = Visit::whereBetween('visit_date', [$startOfMonth, $endOfMonth])
+            ->selectRaw('visit_date, COUNT(*) as count')
+            ->groupBy('visit_date')
+            ->pluck('count', 'visit_date')
+            ->toArray();
+
+        $availableYears = Visit::selectRaw('YEAR(visit_date) as year')
+            ->distinct()
+            ->orderByDesc('year')
+            ->pluck('year')
+            ->filter()
+            ->values()
+            ->toArray();
+
+        if (empty($availableYears)) {
+            $availableYears = [$selectedYear];
+        }
+
+        $sickBayFilled = min($todayVisits, 8);
+        $sickBayCapacity = 8;
+
         return view('dashboard', compact(
             'todayVisits',
             'monthVisits',
             'categoryStats',
             'recentVisits',
-            'monthlyTrend'
+            'monthlyTrend',
+            'calendarCounts',
+            'selectedMonth',
+            'selectedYear',
+            'availableYears',
+            'sickBayFilled',
+            'sickBayCapacity'
         ));
     }
 }
