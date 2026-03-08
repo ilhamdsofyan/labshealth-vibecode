@@ -86,11 +86,22 @@
     .section-head { padding: 1rem 1.2rem; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
     .section-body { padding: 1.2rem; }
 
+    html[data-theme='dark'] .section-head h6,
+    html[data-theme='dark'] .section-body,
+    html[data-theme='dark'] .section-body .fw-semibold,
+    html[data-theme='dark'] .section-body .small {
+        color: #e8eeff;
+    }
+
     .sickbay-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
     .bed-item {
         border: 1px dashed var(--border); border-radius: 12px; min-height: 94px;
         display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3rem;
         font-size: 0.8rem;
+    }
+
+    html[data-theme='dark'] .bed-item {
+        color: #dce6fb;
     }
     .bed-item.filled {
         border: 2px solid var(--primary);
@@ -122,6 +133,15 @@
     .cal-cell.blank { border-style: dashed; opacity: 0.5; }
     .cal-cell.today { border-color: var(--primary); }
     .cal-count { font-size: 0.65rem; color: var(--primary); font-weight: 700; }
+
+    html[data-theme='dark'] .hero-title { color: #f8fbff; }
+    html[data-theme='dark'] .hero-subtitle { color: #c6d2ea; }
+    html[data-theme='dark'] .legend-label,
+    html[data-theme='dark'] .cal-day-head,
+    html[data-theme='dark'] .cal-cell,
+    html[data-theme='dark'] .section-head .small {
+        color: #cfd9ee;
+    }
 
     @media (max-width: 1199.98px) {
         .health-layout { grid-template-columns: 1fr; }

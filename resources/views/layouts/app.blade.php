@@ -55,10 +55,15 @@
             --bg-surface-soft: #252525;
             --bg-sidebar: #1a1a1a;
             --border: #2a2a2a;
-            --text-main: #f5f5f7;
-            --text-muted: #94a3b8;
-            --text-sidebar: #a7b0c0;
+            --text-main: #edf2ff;
+            --text-muted: #b7c2d8;
+            --text-sidebar: #c4cee1;
             --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.28), 0 1px 2px rgba(0, 0, 0, 0.22);
+            --bs-body-color: #edf2ff;
+            --bs-secondary-color: #b7c2d8;
+            --bs-tertiary-color: #9aa8c4;
+            --bs-border-color: #2a2a2a;
+            --bs-emphasis-color: #f8fbff;
         }
 
         * { font-family: 'Public Sans', sans-serif; }
@@ -67,6 +72,10 @@
             background-color: var(--bg-body);
             color: var(--text-main);
             overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--text-main);
         }
 
         a { color: inherit; }
@@ -424,6 +433,14 @@
             background: var(--bg-surface);
         }
 
+        html[data-theme='dark'] .table th {
+            color: #c5d0e6;
+        }
+
+        html[data-theme='dark'] .table td {
+            color: #e6edff;
+        }
+
         .badge-category {
             font-size: 0.72rem;
             font-weight: 600;
@@ -459,6 +476,28 @@
         .dropdown-item:hover { background: var(--bg-surface-soft); }
         .text-muted { color: var(--text-muted) !important; }
         .alert { border-radius: 12px; }
+
+        html[data-theme='dark'] .card,
+        html[data-theme='dark'] .card-header,
+        html[data-theme='dark'] .card-body,
+        html[data-theme='dark'] .form-label,
+        html[data-theme='dark'] .small,
+        html[data-theme='dark'] .fw-medium,
+        html[data-theme='dark'] .fw-semibold,
+        html[data-theme='dark'] .fw-bold {
+            color: var(--text-main);
+        }
+
+        html[data-theme='dark'] .btn-outline-secondary {
+            color: #d5def0;
+            border-color: #445070;
+        }
+
+        html[data-theme='dark'] .btn-outline-secondary:hover {
+            color: #f8fbff;
+            border-color: #5a6790;
+            background: #2a3146;
+        }
 
         .master-async-overlay {
             position: absolute;
