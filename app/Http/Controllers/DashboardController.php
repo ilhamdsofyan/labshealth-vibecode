@@ -35,7 +35,7 @@ class DashboardController extends Controller
             ->pluck('count', 'patient_category')
             ->toArray();
 
-        $recentVisits = Visit::with('creator')
+        $recentVisits = Visit::with(['creator', 'student', 'employee'])
             ->orderByDesc('visit_date')
             ->orderByDesc('visit_time')
             ->limit(10)
@@ -52,6 +52,22 @@ class DashboardController extends Controller
             ->selectRaw('visit_date, COUNT(*) as count')
             ->groupBy('visit_date')
             ->pluck('count', 'visit_date')
+            ->toArray();
+
+        $clinicAgenda = Visit::with('disease')
+            ->whereBetween('visit_date', [$startOfMonth, $endOfMonth])
+            ->orderByDesc('visit_date')
+            ->orderByDesc('visit_time')
+            ->limit(3)
+            ->get()
+            ->map(function (Visit $visit) {
+                return [
+                    'date' => $visit->visit_date,
+                    'time' => $visit->visit_time,
+                    'title' => $visit->disease?->name ?: 'Pemeriksaan Umum',
+                    'subtitle' => $visit->patient_name,
+                ];
+            })
             ->toArray();
 
         $availableYears = Visit::selectRaw('YEAR(visit_date) as year')
@@ -80,7 +96,8 @@ class DashboardController extends Controller
             'selectedYear',
             'availableYears',
             'sickBayFilled',
-            'sickBayCapacity'
+            'sickBayCapacity',
+            'clinicAgenda'
         ));
     }
 }
