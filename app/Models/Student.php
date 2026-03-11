@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Student extends Model
 {
-    protected $fillable = ['nis', 'name', 'gender'];
+    protected $fillable = ['nis', 'name', 'gender', 'avatar_path'];
 
     public function visits(): HasMany
     {

@@ -64,9 +64,11 @@ Route::middleware(['auth', 'permission'])->group(function () {
         // Master Data CRUD
         Route::prefix('master')->name('master.')->group(function () {
             Route::get('students/search', [StudentController::class, 'search'])->name('students.search');
+            Route::delete('students/{student}/avatar', [StudentController::class, 'removeAvatar'])->name('students.remove-avatar');
             Route::resource('students', StudentController::class)->names('students');
 
             Route::get('employees/search', [EmployeeController::class, 'search'])->name('employees.search');
+            Route::delete('employees/{employee}/avatar', [EmployeeController::class, 'removeAvatar'])->name('employees.remove-avatar');
             Route::resource('employees', EmployeeController::class)->names('employees');
 
             Route::get('diseases/search', [DiseaseController::class, 'search'])->name('diseases.search');

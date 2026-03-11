@@ -510,6 +510,21 @@
             background: rgba(26, 26, 26, 0.78);
         }
 
+        .async-swap-out {
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity .18s ease, transform .18s ease;
+        }
+
+        .async-swap-in {
+            animation: asyncSwapIn .24s ease;
+        }
+
+        @keyframes asyncSwapIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         @media (max-width: 991.98px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.show { transform: translateX(0); }
@@ -711,6 +726,10 @@
             });
         }
 
+        function sleep(ms) {
+            return new Promise((resolve) => setTimeout(resolve, ms));
+        }
+
         async function refreshMasterAsyncContainer(url = window.location.href, pushState = false) {
             const containerSelector = '[data-master-async-container]';
             const currentContainer = document.querySelector(containerSelector);
@@ -718,6 +737,13 @@
 
             toggleAsyncOverlay(currentContainer, true);
             try {
+                const withAnimation = currentContainer.dataset.asyncAnim === 'cards';
+                const animationTarget = getAsyncOverlayTarget(currentContainer) || currentContainer;
+                if (withAnimation) {
+                    animationTarget.classList.add('async-swap-out');
+                    await sleep(140);
+                }
+
                 const response = await fetch(url, {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
@@ -737,6 +763,14 @@
                 }
 
                 currentContainer.innerHTML = incomingContainer.innerHTML;
+
+                const nextAnimationTarget = getAsyncOverlayTarget(currentContainer) || currentContainer;
+                nextAnimationTarget.classList.remove('async-swap-out');
+
+                if (withAnimation) {
+                    nextAnimationTarget.classList.add('async-swap-in');
+                    setTimeout(() => nextAnimationTarget.classList.remove('async-swap-in'), 280);
+                }
 
                 if (pushState) {
                     window.history.pushState({}, '', url);
@@ -854,6 +888,41 @@
             } catch (err) {
                 showAsyncAlert('danger', err.message || 'Gagal memuat hasil pencarian.');
             }
+        });
+
+        document.addEventListener('change', function (e) {
+            const field = e.target;
+            const form = field.closest('form.js-auto-search.js-async-search');
+            if (!form) return;
+
+            if (field.matches('select')) {
+                form.requestSubmit();
+            }
+        });
+
+        document.addEventListener('input', function (e) {
+            const field = e.target;
+            const form = field.closest('form.js-auto-search.js-async-search');
+            if (!form) return;
+
+            if (!field.matches('input[type="text"], input[type="search"]')) {
+                return;
+            }
+
+            const value = (field.value || '').trim();
+            if (value.length > 0 && value.length < 3) {
+                return;
+            }
+
+            if (form.dataset.autoSearchTimer) {
+                clearTimeout(Number(form.dataset.autoSearchTimer));
+            }
+
+            const timer = window.setTimeout(() => {
+                form.requestSubmit();
+            }, 300);
+
+            form.dataset.autoSearchTimer = String(timer);
         });
 
         document.addEventListener('click', async function (e) {
