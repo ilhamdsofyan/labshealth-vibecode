@@ -36,6 +36,22 @@
                 @error('location') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Visibilitas</label>
+                @if($canChooseVisibility)
+                    <div class="form-check mt-2">
+                        <input class="form-check-input @error('is_public') is-invalid @enderror" type="checkbox" value="1" id="is_public" name="is_public" {{ old('is_public') ? 'checked' : '' }}>
+                        <label class="form-check-label" for="is_public">
+                            Agenda publik (tampil untuk user lain)
+                        </label>
+                        @error('is_public') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                    </div>
+                @else
+                    <input type="text" class="form-control" value="Pribadi (otomatis sesuai role)" readonly>
+                    <input type="hidden" name="is_public" value="0">
+                @endif
+            </div>
+
             <div class="col-12">
                 <label class="form-label fw-semibold">Judul Agenda <span class="text-danger">*</span></label>
                 <input type="text" name="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title') }}" placeholder="Contoh: Pemeriksaan Kesehatan Berkala" required>

@@ -41,6 +41,8 @@ Route::middleware(['auth', 'permission'])->group(function () {
 
     // Visit Recording
     Route::resource('visits', VisitController::class);
+    Route::patch('visits/{visit}/toggle-rest', [VisitController::class, 'toggleRest'])->name('visits.toggle-rest');
+    Route::patch('visits/{visit}/toggle-pulang', [VisitController::class, 'togglePulang'])->name('visits.toggle-pulang');
 
     // Reports
     Route::get('reports/monthly', [ReportController::class, 'monthly'])->name('reports.monthly');

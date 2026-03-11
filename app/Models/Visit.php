@@ -27,6 +27,8 @@ class Visit extends Model
         'notes',
         'visit_type',
         'is_acc_pulang',
+        'is_rest',
+        'bed_id',
         'acc_pulang_reason',
         'class_at_visit',
         'created_by',
@@ -37,6 +39,7 @@ class Visit extends Model
         return [
             'visit_date' => 'date',
             'is_acc_pulang' => 'boolean',
+            'is_rest' => 'boolean',
         ];
     }
 
@@ -63,6 +66,11 @@ class Visit extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function bed(): BelongsTo
+    {
+        return $this->belongsTo(Bed::class);
     }
 
     public function scopeFilterByDateRange($query, $startDate, $endDate)

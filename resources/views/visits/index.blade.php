@@ -76,9 +76,8 @@
                             <th>Pasien</th>
                             <th>Kategori</th>
                             <th class="d-none d-lg-table-cell">Diseases</th>
-                            <th class="d-none d-lg-table-cell">Obat</th>
-                            <th>Keluhan</th>
-                            <th>Status</th>
+                            <th>Rest</th>
+                            <th>Pulang</th>
                             <th width="100">Aksi</th>
                         </tr>
                     </thead>
@@ -109,22 +108,29 @@
                                 <td class="d-none d-lg-table-cell fw-medium text-primary small">
                                     {{ $visit->disease?->name ?? '-' }}
                                 </td>
-                                <td class="d-none d-lg-table-cell small">
-                                    {{ $visit->medication?->name ?? '-' }}
+                                <td class="small">
+                                    @php $canToggleRestToday = $visit->visit_date && $visit->visit_date->isToday(); @endphp
+                                    <form action="{{ route('visits.toggle-rest', $visit) }}" method="POST" class="js-visit-toggle d-inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="is_rest" value="0">
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" role="switch" name="is_rest" value="1"
+                                                   {{ $visit->is_rest ? 'checked' : '' }}
+                                                   {{ ($visit->is_acc_pulang || !$canToggleRestToday) ? 'disabled' : '' }}
+                                                   title="{{ $canToggleRestToday ? 'Toggle Rest' : 'Rest hanya aktif di hari kunjungan' }}">
+                                        </div>
+                                    </form>
                                 </td>
-                                <td class="small" title="{{ $visit->complaint }}">
-                                    {{ Str::limit($visit->complaint, 30) }}
-                                </td>
-                                <td>
-                                    @if($visit->is_acc_pulang)
-                                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2">
-                                            <i class="bi bi-house-door-fill me-1"></i>Pulang
-                                        </span>
-                                    @else
-                                        <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2">
-                                            <i class="bi bi-person-check me-1"></i>Sembuh
-                                        </span>
-                                    @endif
+                                <td class="small">
+                                    <form action="{{ route('visits.toggle-pulang', $visit) }}" method="POST" class="js-visit-toggle d-inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="is_acc_pulang" value="0">
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" role="switch" name="is_acc_pulang" value="1" {{ $visit->is_acc_pulang ? 'checked' : '' }}>
+                                        </div>
+                                    </form>
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
@@ -163,4 +169,55 @@
         @endif
     </div>
 </div>
+
+@push('scripts')
+<script>
+    document.addEventListener('change', async function (e) {
+        const toggleInput = e.target.closest('.js-visit-toggle input.form-check-input');
+        if (!toggleInput) return;
+
+        const form = toggleInput.closest('form.js-visit-toggle');
+        if (!form) return;
+
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const payload = new FormData(form);
+
+        toggleInput.disabled = true;
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': token || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: payload,
+            });
+
+            let body = {};
+            try { body = await response.json(); } catch (_) {}
+
+            if (!response.ok) {
+                throw new Error(body.message || 'Gagal memperbarui status.');
+            }
+
+            if (window.showAsyncAlert) {
+                window.showAsyncAlert('success', body.message || 'Status diperbarui.');
+            }
+
+            if (window.refreshMasterAsyncContainer) {
+                await window.refreshMasterAsyncContainer(window.location.href, false);
+            } else {
+                window.location.reload();
+            }
+        } catch (err) {
+            if (window.showAsyncAlert) {
+                window.showAsyncAlert('danger', err.message || 'Terjadi kesalahan jaringan.');
+            }
+            toggleInput.checked = !toggleInput.checked;
+            toggleInput.disabled = false;
+        }
+    });
+</script>
+@endpush
 @endsection

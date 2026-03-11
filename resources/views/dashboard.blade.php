@@ -136,40 +136,20 @@
 </style>
 
 <div class="dash-shell">
-    <div class="hero-panel">
-        <div>
-            <h1 class="hero-title">Selamat datang kembali, {{ auth()->user()->name }}!</h1>
-            <p class="hero-subtitle">Saat ini ada <strong class="text-primary">{{ $todayVisits }} kunjungan</strong> yang tercatat hari ini.</p>
-            <div class="hero-actions d-flex gap-2">
-                <a href="{{ route('visits.create') }}" class="btn btn-primary">Intake Baru</a>
-                <a href="{{ route('visits.index') }}" class="btn btn-outline-secondary">Lihat Kunjungan</a>
-            </div>
-        </div>
-        <i class="bi bi-hospital fs-1 text-primary opacity-25"></i>
-    </div>
-
-    <div class="row g-3">
-        <div class="col-lg-8">
-            <div class="card section-card h-100">
-                <div class="section-head">
-                    <h6 class="mb-0 fw-bold">Okupansi Ruang UKS</h6>
-                    <span class="badge bg-success bg-opacity-10 text-success">{{ $sickBayFilled }} / {{ $sickBayCapacity }} bed terisi</span>
-                </div>
-                <div class="section-body">
-                    <div class="sickbay-grid">
-                        @for($i = 1; $i <= $sickBayCapacity; $i++)
-                            <div class="bed-item {{ $i <= $sickBayFilled ? 'filled' : '' }}">
-                                <i class="bi bi-h-square"></i>
-                                <div class="fw-semibold">Bed {{ $i }}</div>
-                                <div class="text-muted">{{ $i <= $sickBayFilled ? 'Terisi' : 'Kosong' }}</div>
-                            </div>
-                        @endfor
-                    </div>
+    <div class="row">
+        <div class="hero-panel col-lg-9">
+            <div>
+                <h1 class="hero-title">Selamat datang kembali, {{ auth()->user()->name }}!</h1>
+                <p class="hero-subtitle">Saat ini ada <strong class="text-primary">{{ $todayVisits }} kunjungan</strong> yang tercatat hari ini.</p>
+                <div class="hero-actions d-flex gap-2">
+                    <a href="{{ route('visits.create') }}" class="btn btn-primary">Intake Baru</a>
+                    <a href="{{ route('visits.index') }}" class="btn btn-outline-secondary">Lihat Kunjungan</a>
                 </div>
             </div>
+            <i class="bi bi-hospital fs-1 text-primary opacity-25"></i>
         </div>
 
-        <div class="col-lg-4">
+        <div class="col-lg-3">
             <div class="card quick-card h-100">
                 <div class="section-head">
                     <h6 class="mb-0 fw-bold">Aksi Cepat</h6>
@@ -199,6 +179,33 @@
     </div>
 
     <div class="row g-3">
+        <div class="col-lg-5">
+            <div class="card section-card h-100">
+                <div class="section-head">
+                    <h6 class="mb-0 fw-bold">Okupansi Ruang UKS</h6>
+                    <span class="badge bg-success bg-opacity-10 text-success">{{ $sickBayFilled }} / {{ $sickBayCapacity }} bed terisi</span>
+                </div>
+                <div class="section-body">
+                    <div class="sickbay-grid">
+                        @forelse($beds as $bed)
+                            @php
+                                $bedVisit = $activeBedVisits->get($bed->id);
+                            @endphp
+                            <div class="bed-item {{ $bedVisit ? 'filled' : '' }}">
+                                <i class="bi bi-h-square"></i>
+                                <div class="fw-semibold">{{ $bed->name ?: $bed->code }}</div>
+                                <div class="text-muted">
+                                    {{ $bedVisit?->patient_name ?? 'Kosong' }}
+                                </div>
+                            </div>
+                        @empty
+                            <div class="text-muted small">Belum ada data bed aktif.</div>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="col-xl-4">
             <div class="card section-card h-100">
                 <div class="section-head">
@@ -245,7 +252,7 @@
             </div>
         </div>
 
-        <div class="col-xl-4">
+        <div class="col-xl-3">
             <div class="card section-card h-100">
                 <div class="section-head">
                     <h6 class="mb-0 fw-bold">Agenda Klinik</h6>
@@ -281,8 +288,10 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="col-xl-4">
+    <div class="row g-3">
+        <div class="col-xl-12">
             <div class="card section-card h-100">
                 <div class="section-head">
                     <h6 class="mb-0 fw-bold">Intake Terbaru</h6>

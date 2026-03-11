@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Bed;
 use App\Models\ClinicAgenda;
 use App\Models\Visit;
 use Illuminate\Http\Request;
@@ -39,7 +40,7 @@ class DashboardController extends Controller
         $recentVisits = Visit::with('creator')
             ->orderByDesc('visit_date')
             ->orderByDesc('visit_time')
-            ->limit(10)
+            ->limit(5)
             ->get();
 
         $monthlyTrend = Visit::whereBetween('visit_date', [$startOfMonth, $endOfMonth])
@@ -50,6 +51,7 @@ class DashboardController extends Controller
             ->toArray();
 
         $agendas = ClinicAgenda::query()
+            ->visibleTo($request->user())
             ->whereBetween('agenda_date', [$startOfMonth, $endOfMonth])
             ->orderBy('agenda_date')
             ->orderBy('agenda_time')
@@ -68,8 +70,16 @@ class DashboardController extends Controller
             $availableYears = [$selectedYear];
         }
 
-        $sickBayFilled = min($todayVisits, 8);
-        $sickBayCapacity = 8;
+        $beds = Bed::query()->where('is_active', true)->orderBy('id')->get();
+        $activeBedVisits = Visit::with(['bed', 'student', 'employee'])
+            ->where('is_rest', true)
+            ->where('is_acc_pulang', false)
+            ->whereNotNull('bed_id')
+            ->get()
+            ->keyBy('bed_id');
+
+        $sickBayCapacity = $beds->count();
+        $sickBayFilled = $activeBedVisits->count();
 
         return view('dashboard', compact(
             'todayVisits',
@@ -81,6 +91,8 @@ class DashboardController extends Controller
             'selectedMonth',
             'selectedYear',
             'availableYears',
+            'beds',
+            'activeBedVisits',
             'sickBayFilled',
             'sickBayCapacity'
         ));
