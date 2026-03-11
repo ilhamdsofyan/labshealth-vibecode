@@ -5,9 +5,8 @@
 @section('content')
 <div class="login-card card mx-auto">
     <div class="login-header">
-        <div class="icon-circle">
-            <i class="bi bi-heart-pulse"></i>
-        </div>
+        <img src="{{ asset('assets/img/Logo Labschool Bintaro.png') }}" alt="LabsHealth UKS" class="login-logo-long">
+        <img src="{{ asset('assets/img/Logo.png') }}" alt="LabsHealth UKS" class="login-logo-square">
         <h4 class="mb-1 fw-bold">LabsHealth UKS</h4>
         <p class="mb-0 opacity-75" style="font-size:0.88rem;">Sistem Pencatatan Kunjungan UKS</p>
     </div>

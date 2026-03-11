@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#4F46E5">
-    <title>@yield('title', 'Login') — LabsHealth</title>
+    <meta name="theme-color" content="#006060">
+    <title>@yield('title', 'Login') - LabsHealth</title>
+    <link rel="icon" type="image/png" href="{{ asset('assets/img/Logo.png') }}">
 
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -20,7 +21,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #006060 0%, #0070C0 100%);
         }
 
         .login-card {
@@ -33,22 +34,37 @@
         }
 
         .login-header {
-            background: linear-gradient(135deg, #4F46E5, #7C3AED);
+            background: linear-gradient(135deg, #006060, #0070C0);
             padding: 2rem;
             text-align: center;
             color: white;
         }
 
-        .login-header .icon-circle {
-            width: 60px;
-            height: 60px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
+        .login-header .login-logo-long {
+            width: 220px;
+            max-width: 100%;
+            height: auto;
+            object-fit: contain;
             margin-bottom: 0.75rem;
+        }
+
+        .login-header .login-logo-square {
+            width: 62px;
+            height: 62px;
+            border-radius: 14px;
+            object-fit: cover;
+            margin-bottom: 0.75rem;
+            display: none;
+        }
+
+        @media (max-width: 420px) {
+            .login-header .login-logo-long {
+                display: none;
+            }
+
+            .login-header .login-logo-square {
+                display: inline-block;
+            }
         }
 
         .login-body {
@@ -62,12 +78,12 @@
         }
 
         .form-control:focus {
-            border-color: #4F46E5;
-            box-shadow: 0 0 0 3px rgba(79,70,229,0.15);
+            border-color: #006060;
+            box-shadow: 0 0 0 3px rgba(0,96,96,0.15);
         }
 
         .btn-login {
-            background: linear-gradient(135deg, #4F46E5, #7C3AED);
+            background: linear-gradient(135deg, #006060, #0070C0);
             border: none;
             border-radius: 10px;
             padding: 0.65rem;
@@ -76,7 +92,7 @@
         }
 
         .btn-login:hover {
-            background: linear-gradient(135deg, #4338CA, #6D28D9);
+            background: linear-gradient(135deg, #005050, #0060A8);
         }
 
         .btn-google {

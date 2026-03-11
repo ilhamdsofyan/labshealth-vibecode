@@ -1,9 +1,7 @@
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-        <div class="brand-icon">
-            <i class="bi bi-heart-pulse"></i>
-        </div>
-        <h5>LabsHealth UKS</h5>
+        <img src="{{ asset('assets/img/Logo Labschool Bintaro.png') }}" alt="LabsHealth UKS" class="brand-logo-long">
+        <img src="{{ asset('assets/img/Logo.png') }}" alt="LabsHealth UKS" class="brand-logo-square">
     </div>
 
     <nav class="sidebar-nav">

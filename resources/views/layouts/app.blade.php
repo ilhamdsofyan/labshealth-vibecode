@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#ec5b13">
+    <meta name="theme-color" content="#006060">
 
     <title>@yield('title', 'UKS') - LabsHealth</title>
 
@@ -17,7 +17,8 @@
     </script>
 
     <link rel="manifest" href="{{ asset('manifest.json') }}">
-    <link rel="apple-touch-icon" href="{{ asset('icons/icon-192x192.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('assets/img/Logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('assets/img/Logo.png') }}">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -34,8 +35,8 @@
             --navbar-height: 80px;
             --radius-lg: 12px;
             --radius-xl: 16px;
-            --primary: #ec5b13;
-            --accent: #ffd700;
+            --primary: #006060;
+            --accent: #f0d000;
             --bg-body: #f8f6f6;
             --bg-surface: #ffffff;
             --bg-surface-soft: #f3f4f6;
@@ -48,8 +49,8 @@
         }
 
         html[data-theme='dark'] {
-            --primary: #0ea5e9;
-            --accent: #facc15;
+            --primary: #0070c0;
+            --accent: #f0d000;
             --bg-body: #121212;
             --bg-surface: #1e1e1e;
             --bg-surface-soft: #252525;
@@ -104,25 +105,19 @@
             border-bottom: 1px solid var(--border);
         }
 
-        .sidebar-brand h5 {
-            color: var(--text-main);
-            margin: 0;
-            font-weight: 800;
-            font-size: 1.15rem;
-            letter-spacing: -0.02em;
+        .sidebar-brand .brand-logo-long {
+            max-width: 190px;
+            width: 100%;
+            height: auto;
+            object-fit: contain;
         }
 
-        .sidebar-brand .brand-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--accent), var(--primary));
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 12px;
-            font-size: 1.05rem;
-            color: #111827;
+        .sidebar-brand .brand-logo-square {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            object-fit: cover;
+            display: none;
         }
 
         .sidebar-nav { padding: 1rem; }
@@ -525,6 +520,19 @@
             .main-content { margin-left: 0; padding: 1rem; }
             .header-tools { gap: 0.5rem; }
             .top-navbar .page-heading { font-size: 1rem; }
+
+            .sidebar-brand {
+                justify-content: center;
+                padding: 1rem;
+            }
+
+            .sidebar-brand .brand-logo-long {
+                display: none;
+            }
+
+            .sidebar-brand .brand-logo-square {
+                display: block;
+            }
         }
 
         @media print {
@@ -623,7 +631,7 @@
 
             const themeMeta = document.querySelector('meta[name="theme-color"]');
             if (themeMeta) {
-                themeMeta.setAttribute('content', theme === 'dark' ? '#121212' : '#ec5b13');
+                themeMeta.setAttribute('content', theme === 'dark' ? '#121212' : '#006060');
             }
 
             const themeIcon = document.querySelector('#themeToggle i');
