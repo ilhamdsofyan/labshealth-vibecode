@@ -199,15 +199,16 @@
         const editNameInput = document.getElementById('edit_medication_name');
         const editCategoryInput = document.getElementById('edit_medication_category');
 
-        document.querySelectorAll('.btn-edit-medication').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                const id = this.dataset.id;
-                editForm.action = "{{ url('admin/master/medications') }}/" + id;
-                editIdInput.value = id;
-                editNameInput.value = this.dataset.name || '';
-                editCategoryInput.value = this.dataset.category || '';
-                editModal.show();
-            });
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.btn-edit-medication');
+            if (!btn) return;
+
+            const id = btn.dataset.id;
+            editForm.action = "{{ url('admin/master/medications') }}/" + id;
+            editIdInput.value = id;
+            editNameInput.value = btn.dataset.name || '';
+            editCategoryInput.value = btn.dataset.category || '';
+            editModal.show();
         });
 
         @if($errors->any() && old('edit_id'))

@@ -258,18 +258,19 @@
             year: document.getElementById('edit_student_year'),
         };
 
-        document.querySelectorAll('.btn-edit-student').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                const id = this.dataset.id;
-                editForm.action = "{{ url('admin/master/students') }}/" + id;
-                fields.id.value = id;
-                fields.nis.value = this.dataset.nis || '';
-                fields.name.value = this.dataset.name || '';
-                fields.gender.value = this.dataset.gender || '';
-                fields.className.value = this.dataset.class || '';
-                fields.year.value = this.dataset.year || '';
-                editModal.show();
-            });
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.btn-edit-student');
+            if (!btn) return;
+
+            const id = btn.dataset.id;
+            editForm.action = "{{ url('admin/master/students') }}/" + id;
+            fields.id.value = id;
+            fields.nis.value = btn.dataset.nis || '';
+            fields.name.value = btn.dataset.name || '';
+            fields.gender.value = btn.dataset.gender || '';
+            fields.className.value = btn.dataset.class || '';
+            fields.year.value = btn.dataset.year || '';
+            editModal.show();
         });
 
         @if($errors->any() && old('edit_id'))

@@ -36,6 +36,12 @@ class EmployeeController extends Controller
             ->distinct()
             ->orderBy('department')
             ->pluck('department');
+        $roleSuggestions = Employee::query()
+            ->whereNotNull('role_type')
+            ->where('role_type', '!=', '')
+            ->distinct()
+            ->orderBy('role_type')
+            ->pluck('role_type');
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -48,7 +54,7 @@ class EmployeeController extends Controller
         $employees = $query->orderBy('created_at', 'desc')
                         ->paginate(15)->withQueryString();
 
-        return view('admin.master.employees.index', compact('employees', 'departmentSuggestions'));
+        return view('admin.master.employees.index', compact('employees', 'departmentSuggestions', 'roleSuggestions'));
     }
 
     public function create(): RedirectResponse

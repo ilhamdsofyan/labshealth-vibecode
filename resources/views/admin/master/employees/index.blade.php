@@ -140,11 +140,13 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Tipe Pegawai <span class="text-danger">*</span></label>
-                        <select name="role_type" class="form-select @error('role_type') is-invalid @enderror" required>
-                            <option value="">Pilih</option>
-                            <option value="GURU" {{ (!old('edit_id') && old('role_type') === 'GURU') ? 'selected' : '' }}>GURU</option>
-                            <option value="KARYAWAN" {{ (!old('edit_id') && old('role_type') === 'KARYAWAN') ? 'selected' : '' }}>KARYAWAN</option>
-                        </select>
+                        <input type="text" name="role_type" class="form-control @error('role_type') is-invalid @enderror"
+                               value="{{ old('edit_id') ? '' : old('role_type') }}" list="employeeRoleSuggestions" required>
+                        <datalist id="employeeRoleSuggestions">
+                            @foreach($roleSuggestions as $role)
+                                <option value="{{ $role }}"></option>
+                            @endforeach
+                        </datalist>
                         @if($errors->any() && !old('edit_id'))
                             @error('role_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         @endif
@@ -196,11 +198,12 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Tipe Pegawai <span class="text-danger">*</span></label>
-                        <select id="edit_employee_role" name="role_type" class="form-select @error('role_type') is-invalid @enderror" required>
-                            <option value="">Pilih</option>
-                            <option value="GURU">GURU</option>
-                            <option value="KARYAWAN">KARYAWAN</option>
-                        </select>
+                        <input type="text" id="edit_employee_role" name="role_type" class="form-control @error('role_type') is-invalid @enderror" list="employeeRoleSuggestions" required>
+                        <datalist id="employeeRoleSuggestions">
+                            @foreach($roleSuggestions as $role)
+                                <option value="{{ $role }}"></option>
+                            @endforeach
+                        </datalist>
                         @if($errors->any() && old('edit_id'))
                             @error('role_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         @endif
@@ -243,17 +246,18 @@
             department: document.getElementById('edit_employee_department'),
         };
 
-        document.querySelectorAll('.btn-edit-employee').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                const id = this.dataset.id;
-                editForm.action = "{{ url('admin/master/employees') }}/" + id;
-                fields.id.value = id;
-                fields.nip.value = this.dataset.nip || '';
-                fields.name.value = this.dataset.name || '';
-                fields.role.value = this.dataset.role || '';
-                fields.department.value = this.dataset.department || '';
-                editModal.show();
-            });
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.btn-edit-employee');
+            if (!btn) return;
+
+            const id = btn.dataset.id;
+            editForm.action = "{{ url('admin/master/employees') }}/" + id;
+            fields.id.value = id;
+            fields.nip.value = btn.dataset.nip || '';
+            fields.name.value = btn.dataset.name || '';
+            fields.role.value = btn.dataset.role || '';
+            fields.department.value = btn.dataset.department || '';
+            editModal.show();
         });
 
         @if($errors->any() && old('edit_id'))
