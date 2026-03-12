@@ -92,14 +92,32 @@
         @error('class_or_department') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
+    @php
+        $oldDiseaseIds = collect(old('disease_ids', isset($visit) ? $visit->diseases->pluck('id')->all() : []))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values();
+        $oldMedicationIds = collect(old('medication_ids', isset($visit) ? $visit->medications->pluck('id')->all() : []))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values();
+        $selectedDiseases = $oldDiseaseIds->isNotEmpty()
+            ? \App\Models\Disease::query()->whereIn('id', $oldDiseaseIds)->get()
+            : collect();
+        $selectedMedications = $oldMedicationIds->isNotEmpty()
+            ? \App\Models\Medication::query()->whereIn('id', $oldMedicationIds)->get()
+            : collect();
+    @endphp
+
     <div class="col-md-8">
         <label class="form-label small fw-semibold">Diagnosa / Penyakit <span class="text-danger">*</span></label>
-        <select name="disease_id" id="disease_id" class="form-select select2-ajax" data-url="{{ route('admin.master.diseases.search') }}" required>
-            @if(isset($visit) && $visit->disease)
-                <option value="{{ $visit->disease_id }}" selected>{{ $visit->disease->name }}</option>
-            @endif
+        <select name="disease_ids[]" id="disease_id" class="form-select select2-ajax" data-url="{{ route('admin.master.diseases.search') }}" multiple required>
+            @foreach($selectedDiseases as $selectedDisease)
+                <option value="{{ $selectedDisease->id }}" selected>{{ $selectedDisease->name }}</option>
+            @endforeach
         </select>
-        @error('disease_id') <div class="invalid-feedback text-danger small">{{ $message }}</div> @enderror
+        @error('disease_ids') <div class="invalid-feedback text-danger small d-block">{{ $message }}</div> @enderror
+        @error('disease_ids.*') <div class="invalid-feedback text-danger small d-block">{{ $message }}</div> @enderror
     </div>
 
     <div class="col-md-4 d-flex align-items-end mb-1">
@@ -111,12 +129,13 @@
 
     <div class="col-md-8">
         <label class="form-label small fw-semibold">Obat</label>
-        <select name="medication_id" id="medication_id" class="form-select select2-ajax" data-url="{{ route('admin.master.medications.search') }}">
-            @if(isset($visit) && $visit->medication)
-                <option value="{{ $visit->medication_id }}" selected>{{ $visit->medication->name }}</option>
-            @endif
+        <select name="medication_ids[]" id="medication_id" class="form-select select2-ajax" data-url="{{ route('admin.master.medications.search') }}" multiple>
+            @foreach($selectedMedications as $selectedMedication)
+                <option value="{{ $selectedMedication->id }}" selected>{{ $selectedMedication->name }}</option>
+            @endforeach
         </select>
-        @error('medication_id') <div class="invalid-feedback text-danger small">{{ $message }}</div> @enderror
+        @error('medication_ids') <div class="invalid-feedback text-danger small d-block">{{ $message }}</div> @enderror
+        @error('medication_ids.*') <div class="invalid-feedback text-danger small d-block">{{ $message }}</div> @enderror
     </div>
 
     <div class="col-12 {{ old('is_acc_pulang', $visit->is_acc_pulang ?? false) ? '' : 'd-none' }}" id="reasonWrapper">
@@ -161,6 +180,7 @@
         // Initialize Select2 AJAX
         $('.select2-ajax').each(function() {
             var url = $(this).data('url');
+            var isMultiple = $(this).prop('multiple');
             $(this).select2({
                 theme: 'bootstrap-5',
                 ajax: {
@@ -176,7 +196,8 @@
                     cache: true
                 },
                 placeholder: 'Cari data...',
-                minimumInputLength: 1
+                minimumInputLength: 1,
+                closeOnSelect: !isMultiple
             });
         });
 

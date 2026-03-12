@@ -19,7 +19,7 @@ class ReportService
     {
         $query = Visit::whereMonth('visit_date', $month)
             ->whereYear('visit_date', $year)
-            ->with('disease');
+            ->with('diseases');
 
         if ($type === 'acc_pulang') {
             $query->where('is_acc_pulang', true);
@@ -27,29 +27,37 @@ class ReportService
 
         $visits = $query->get();
 
-        // Group by disease_id and count by patient_category
-        $grouped = $visits->groupBy('disease_id')->map(function ($group, $diseaseId) {
-            $categories = ['SMA' => 0, 'GURU' => 0, 'KARYAWAN' => 0, 'UMUM' => 0];
-            $diseaseName = $group->first()->disease?->name ?? 'Tidak Terdiagnosa';
+        $seed = ['SMA' => 0, 'GURU' => 0, 'KARYAWAN' => 0, 'UMUM' => 0];
+        $groupedMap = [];
 
-            foreach ($group as $visit) {
-                if (isset($categories[$visit->patient_category])) {
-                    $categories[$visit->patient_category]++;
-                }
+        foreach ($visits as $visit) {
+            $assignedDiseases = $visit->diseases;
+            if ($assignedDiseases->isEmpty()) {
+                $assignedDiseases = collect([(object) ['id' => 0, 'name' => 'Tidak Terdiagnosa']]);
             }
 
-            $total = array_sum($categories);
+            foreach ($assignedDiseases as $disease) {
+                $key = (string) $disease->id;
+                if (!isset($groupedMap[$key])) {
+                    $groupedMap[$key] = [
+                        'disease_name' => $disease->name,
+                        'SMA' => $seed['SMA'],
+                        'GURU' => $seed['GURU'],
+                        'KARYAWAN' => $seed['KARYAWAN'],
+                        'UMUM' => $seed['UMUM'],
+                        'total' => 0,
+                        'notes' => '',
+                    ];
+                }
 
-            return [
-                'disease_name' => $diseaseName,
-                'SMA' => $categories['SMA'],
-                'GURU' => $categories['GURU'],
-                'KARYAWAN' => $categories['KARYAWAN'],
-                'UMUM' => $categories['UMUM'],
-                'total' => $total,
-                'notes' => '',
-            ];
-        })->values();
+                if (isset($groupedMap[$key][$visit->patient_category])) {
+                    $groupedMap[$key][$visit->patient_category]++;
+                    $groupedMap[$key]['total']++;
+                }
+            }
+        }
+
+        $grouped = collect(array_values($groupedMap));
 
         // Sort by total desc
         $grouped = $grouped->sortByDesc('total')->values();

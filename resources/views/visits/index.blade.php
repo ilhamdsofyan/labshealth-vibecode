@@ -106,7 +106,10 @@
                                     <div class="small text-muted mt-1">{{ $visit->class_at_visit ?? $visit->class_or_department ?? '-' }}</div>
                                 </td>
                                 <td class="d-none d-lg-table-cell fw-medium text-primary small">
-                                    {{ $visit->disease?->name ?? '-' }}
+                                    @php
+                                        $diseaseNames = $visit->diseases->pluck('name')->filter()->values();
+                                    @endphp
+                                    {{ $diseaseNames->isNotEmpty() ? $diseaseNames->implode(', ') : '-' }}
                                 </td>
                                 <td class="small">
                                     @php $canToggleRestToday = $visit->visit_date && $visit->visit_date->isToday(); @endphp

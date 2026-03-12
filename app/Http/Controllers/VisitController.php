@@ -14,17 +14,17 @@ class VisitController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Visit::with(['creator', 'disease', 'medication', 'student', 'employee', 'bed']);
+        $query = Visit::with(['creator', 'disease', 'medication', 'diseases', 'medications', 'student', 'employee', 'bed']);
 
         // Search
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('patient_name', 'like', "%{$search}%")
                   ->orWhere('complaint', 'like', "%{$search}%")
-                  ->orWhereHas('disease', function($dq) use ($search) {
+                  ->orWhereHas('diseases', function($dq) use ($search) {
                       $dq->where('name', 'like', "%{$search}%");
                   })
-                  ->orWhereHas('medication', function($mq) use ($search) {
+                  ->orWhereHas('medications', function($mq) use ($search) {
                       $mq->where('name', 'like', "%{$search}%");
                   });
             });
@@ -35,7 +35,9 @@ class VisitController extends Controller
         $query->filterByCategory($request->input('patient_category'));
         
         if ($diseaseId = $request->input('disease_id')) {
-            $query->where('disease_id', $diseaseId);
+            $query->whereHas('diseases', function ($dq) use ($diseaseId) {
+                $dq->where('diseases.id', $diseaseId);
+            });
         }
 
         if ($request->input('is_acc_pulang')) {
@@ -58,6 +60,12 @@ class VisitController extends Controller
     public function store(VisitRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $diseaseIds = array_values(array_unique(array_map('intval', $data['disease_ids'] ?? [])));
+        $medicationIds = array_values(array_unique(array_map('intval', $data['medication_ids'] ?? [])));
+        unset($data['disease_ids'], $data['medication_ids']);
+
+        $data['disease_id'] = $diseaseIds[0] ?? null;
+        $data['medication_id'] = $medicationIds[0] ?? null;
         $data['created_by'] = auth()->id();
         $data['visit_type'] = 'kunjungan'; // compatibility
         
@@ -79,7 +87,9 @@ class VisitController extends Controller
             $data['patient_name'] = $data['external_patient_name'];
         }
 
-        Visit::create($data);
+        $visit = Visit::create($data);
+        $visit->diseases()->sync($diseaseIds);
+        $visit->medications()->sync($medicationIds);
 
         return redirect()->route('visits.index')
             ->with('success', 'Data kunjungan berhasil disimpan.');
@@ -87,19 +97,25 @@ class VisitController extends Controller
 
     public function show(Visit $visit): View
     {
-        $visit->load(['creator', 'disease', 'medication', 'student', 'employee']);
+        $visit->load(['creator', 'disease', 'medication', 'diseases', 'medications', 'student', 'employee']);
         return view('visits.show', compact('visit'));
     }
 
     public function edit(Visit $visit): View
     {
-        $visit->load(['disease', 'medication', 'student', 'employee']);
+        $visit->load(['disease', 'medication', 'diseases', 'medications', 'student', 'employee']);
         return view('visits.edit', compact('visit'));
     }
 
     public function update(VisitRequest $request, Visit $visit): RedirectResponse
     {
         $data = $request->validated();
+        $diseaseIds = array_values(array_unique(array_map('intval', $data['disease_ids'] ?? [])));
+        $medicationIds = array_values(array_unique(array_map('intval', $data['medication_ids'] ?? [])));
+        unset($data['disease_ids'], $data['medication_ids']);
+
+        $data['disease_id'] = $diseaseIds[0] ?? null;
+        $data['medication_id'] = $medicationIds[0] ?? null;
         
         // Update logic for category changes
         if ($data['patient_category'] === 'SMA' && $request->filled('student_id')) {
@@ -121,6 +137,8 @@ class VisitController extends Controller
         }
 
         $visit->update($data);
+        $visit->diseases()->sync($diseaseIds);
+        $visit->medications()->sync($medicationIds);
 
         return redirect()->route('visits.index')
             ->with('success', 'Data kunjungan berhasil diperbarui.');

@@ -22,8 +22,10 @@ class VisitRequest extends FormRequest
             
             'student_id' => ['required_if:patient_category,SMA', 'nullable', 'exists:students,id'],
             'employee_id' => ['required_if:patient_category,GURU,patient_category,KARYAWAN', 'nullable', 'exists:employees,id'],
-            'disease_id' => ['required', 'exists:diseases,id'],
-            'medication_id' => ['nullable', 'exists:medications,id'],
+            'disease_ids' => ['required', 'array', 'min:1'],
+            'disease_ids.*' => ['exists:diseases,id'],
+            'medication_ids' => ['nullable', 'array'],
+            'medication_ids.*' => ['exists:medications,id'],
             
             'external_patient_name' => ['required_if:patient_category,UMUM', 'nullable', 'string', 'max:255'],
             'additional_info' => ['required_if:patient_category,UMUM', 'nullable', 'string'],
@@ -48,7 +50,8 @@ class VisitRequest extends FormRequest
             'patient_category.required' => 'Kategori pasien wajib dipilih.',
             'student_id.required_if' => 'Siswa wajib dipilih untuk kategori SMA.',
             'employee_id.required_if' => 'Pegawai wajib dipilih untuk kategori GURU/KARYAWAN.',
-            'disease_id.required' => 'Diagnosa/Penyakit wajib dipilih.',
+            'disease_ids.required' => 'Diagnosa/Penyakit wajib dipilih minimal 1.',
+            'disease_ids.min' => 'Diagnosa/Penyakit wajib dipilih minimal 1.',
             'complaint.required' => 'Keluhan wajib diisi.',
             'officer_name.required' => 'Nama petugas wajib diisi.',
             'acc_pulang_reason.required_if' => 'Alasan Acc Pulang wajib diisi jika dicentang.',

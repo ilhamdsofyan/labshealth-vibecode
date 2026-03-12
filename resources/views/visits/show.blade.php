@@ -68,7 +68,12 @@
                 <div class="row g-4 mb-4">
                     <div class="col-6">
                         <label class="small text-muted d-block mb-1">DIAGNOSA PENYAKIT</label>
-                        <h6 class="fw-bold text-primary"><i class="bi bi-virus me-2"></i>{{ $visit->disease?->name ?? 'Tidak ditentukan' }}</h6>
+                        @php
+                            $diseaseNames = $visit->diseases->pluck('name')->filter()->values();
+                        @endphp
+                        <h6 class="fw-bold text-primary">
+                            <i class="bi bi-virus me-2"></i>{{ $diseaseNames->isNotEmpty() ? $diseaseNames->implode(', ') : 'Tidak ditentukan' }}
+                        </h6>
                     </div>
                     <div class="col-6 text-end">
                         <label class="small text-muted d-block mb-1">STATUS</label>
@@ -105,7 +110,10 @@
 
                 <div class="mb-4">
                     <label class="small text-muted d-block mb-1">OBAT</label>
-                    <p class="fw-medium">{{ $visit->medication?->name ?? '-' }}</p>
+                    @php
+                        $medicationNames = $visit->medications->pluck('name')->filter()->values();
+                    @endphp
+                    <p class="fw-medium">{{ $medicationNames->isNotEmpty() ? $medicationNames->implode(', ') : '-' }}</p>
                 </div>
 
                 <div class="row">

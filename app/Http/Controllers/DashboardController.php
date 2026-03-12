@@ -12,24 +12,24 @@ class DashboardController extends Controller
 {
     public function index(Request $request): View
     {
-        $selectedMonth = (int) $request->input('month', now()->month);
-        $selectedYear = (int) $request->input('year', now()->year);
+        $now = now();
+        $selectedMonth = (int) $request->input('month', $now->month);
+        $selectedYear = (int) $request->input('year', $now->year);
 
         if ($selectedMonth < 1 || $selectedMonth > 12) {
-            $selectedMonth = now()->month;
+            $selectedMonth = $now->month;
         }
 
         if ($selectedYear < 2000 || $selectedYear > 2100) {
-            $selectedYear = now()->year;
+            $selectedYear = $now->year;
         }
 
-        $selectedDate = now()->setYear($selectedYear)->setMonth($selectedMonth);
-        $today = now()->toDateString();
+        $selectedDate = $now->copy()->setYear($selectedYear)->setMonth($selectedMonth);
+        $today = $now->toDateString();
         $startOfMonth = $selectedDate->copy()->startOfMonth()->toDateString();
         $endOfMonth = $selectedDate->copy()->endOfMonth()->toDateString();
 
         $todayVisits = Visit::where('visit_date', $today)->count();
-        $monthVisits = Visit::whereBetween('visit_date', [$startOfMonth, $endOfMonth])->count();
 
         $categoryStats = Visit::whereBetween('visit_date', [$startOfMonth, $endOfMonth])
             ->selectRaw('patient_category, COUNT(*) as count')
@@ -37,20 +37,15 @@ class DashboardController extends Controller
             ->pluck('count', 'patient_category')
             ->toArray();
 
-        $recentVisits = Visit::with('creator')
+        $recentVisits = Visit::query()
+            ->select(['id', 'visit_date', 'visit_time', 'patient_name', 'patient_category'])
             ->orderByDesc('visit_date')
             ->orderByDesc('visit_time')
             ->limit(5)
             ->get();
 
-        $monthlyTrend = Visit::whereBetween('visit_date', [$startOfMonth, $endOfMonth])
-            ->selectRaw('visit_date, COUNT(*) as count')
-            ->groupBy('visit_date')
-            ->orderBy('visit_date')
-            ->pluck('count', 'visit_date')
-            ->toArray();
-
         $agendas = ClinicAgenda::query()
+            ->select(['id', 'agenda_date', 'agenda_time', 'title', 'location', 'is_public', 'created_by'])
             ->visibleTo($request->user())
             ->whereBetween('agenda_date', [$startOfMonth, $endOfMonth])
             ->orderBy('agenda_date')
@@ -70,8 +65,14 @@ class DashboardController extends Controller
             $availableYears = [$selectedYear];
         }
 
-        $beds = Bed::query()->where('is_active', true)->orderBy('id')->get();
-        $activeBedVisits = Visit::with(['bed', 'student', 'employee'])
+        $beds = Bed::query()
+            ->select(['id', 'code', 'name'])
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->get();
+
+        $activeBedVisits = Visit::query()
+            ->select(['id', 'bed_id', 'patient_name'])
             ->where('is_rest', true)
             ->where('is_acc_pulang', false)
             ->whereNotNull('bed_id')
@@ -83,10 +84,8 @@ class DashboardController extends Controller
 
         return view('dashboard', compact(
             'todayVisits',
-            'monthVisits',
             'categoryStats',
             'recentVisits',
-            'monthlyTrend',
             'agendas',
             'selectedMonth',
             'selectedYear',

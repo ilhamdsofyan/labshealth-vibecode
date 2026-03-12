@@ -31,7 +31,13 @@ class LegacyVisitImport implements ToCollection, WithHeadingRow
             try {
                 $data = $this->processRow($row);
                 if ($data) {
-                    Visit::create($data);
+                    $diseaseIds = $data['disease_ids'] ?? [];
+                    $medicationIds = $data['medication_ids'] ?? [];
+                    unset($data['disease_ids'], $data['medication_ids']);
+
+                    $visit = Visit::create($data);
+                    $visit->diseases()->sync($diseaseIds);
+                    $visit->medications()->sync($medicationIds);
                     $this->successCount++;
                 } else {
                     $this->failedRows[] = [
@@ -67,25 +73,29 @@ class LegacyVisitImport implements ToCollection, WithHeadingRow
         $patient = $this->resolvePatientIdentity($patientName, $position);
 
         // Disease normalization
-        $diseaseName = trim((string) $this->value($row, ['disease_name']));
-        $diseaseId = null;
-        if ($diseaseName) {
+        $diseaseNames = $this->splitMultiValues((string) $this->value($row, ['disease_name']));
+        $diseaseIds = [];
+        foreach ($diseaseNames as $diseaseName) {
             $disease = Disease::firstOrCreate(['name' => $diseaseName]);
-            $diseaseId = $disease->id;
+            $diseaseIds[] = $disease->id;
         }
+        $diseaseIds = array_values(array_unique($diseaseIds));
+        $diseaseId = $diseaseIds[0] ?? null;
 
         $complaint = trim((string) $this->value($row, ['complaint']));
         if (!$complaint) {
-            $complaint = $diseaseName;
+            $complaint = $diseaseNames[0] ?? '';
         }
 
         $therapy = trim((string) $this->value($row, ['therapy']));
-        $medication = trim((string) $this->value($row, ['medication']));
-        $medicationId = null;
-        if ($medication !== '') {
-            $medicationModel = Medication::firstOrCreate(['name' => $medication]);
-            $medicationId = $medicationModel->id;
+        $medicationNames = $this->splitMultiValues((string) $this->value($row, ['medication']));
+        $medicationIds = [];
+        foreach ($medicationNames as $medicationName) {
+            $medicationModel = Medication::firstOrCreate(['name' => $medicationName]);
+            $medicationIds[] = $medicationModel->id;
         }
+        $medicationIds = array_values(array_unique($medicationIds));
+        $medicationId = $medicationIds[0] ?? null;
 
         return [
             'visit_date' => $this->parseDate($this->value($row, ['visit_date'])),
@@ -97,6 +107,8 @@ class LegacyVisitImport implements ToCollection, WithHeadingRow
             'employee_id' => $patient['employee_id'],
             'disease_id' => $diseaseId,
             'medication_id' => $medicationId,
+            'disease_ids' => $diseaseIds,
+            'medication_ids' => $medicationIds,
             'class_or_department' => $patient['class_or_department'],
             'class_at_visit' => $patient['class_at_visit'],
             'complaint' => $complaint,
@@ -107,6 +119,23 @@ class LegacyVisitImport implements ToCollection, WithHeadingRow
             'created_by' => Auth::id() ?: 1,
             'visit_type' => 'kunjungan' // mapping for legacy compat if needed
         ];
+    }
+
+    protected function splitMultiValues(string $value): array
+    {
+        $normalized = $this->normalizeWhitespace($value);
+        if ($normalized === '') {
+            return [];
+        }
+
+        $parts = preg_split('/\s*(?:,|;|\|)\s*/', $normalized) ?: [];
+
+        return collect($parts)
+            ->map(fn ($item) => $this->normalizeWhitespace((string) $item))
+            ->filter(fn ($item) => $item !== '')
+            ->unique()
+            ->values()
+            ->all();
     }
 
     protected function parseDate($date)

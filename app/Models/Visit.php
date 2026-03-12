@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\Auditable;
@@ -56,6 +57,16 @@ class Visit extends Model
     public function medication(): BelongsTo
     {
         return $this->belongsTo(Medication::class);
+    }
+
+    public function diseases(): BelongsToMany
+    {
+        return $this->belongsToMany(Disease::class)->withTimestamps();
+    }
+
+    public function medications(): BelongsToMany
+    {
+        return $this->belongsToMany(Medication::class)->withTimestamps();
     }
 
     public function student(): BelongsTo
