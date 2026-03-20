@@ -14,6 +14,7 @@
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
             <li><a class="dropdown-item small" href="{{ route('admin.import.template', ['type' => 'students']) }}">Template Siswa</a></li>
+            <li><a class="dropdown-item small" href="{{ route('admin.import.template', ['type' => 'student_details']) }}">Template Detail Siswa</a></li>
             <li><a class="dropdown-item small" href="{{ route('admin.import.template', ['type' => 'employees']) }}">Template Pegawai</a></li>
             <li><a class="dropdown-item small" href="{{ route('admin.import.template', ['type' => 'diseases']) }}">Template Penyakit</a></li>
             <li><a class="dropdown-item small" href="{{ route('admin.import.template', ['type' => 'medications']) }}">Template Obat</a></li>
@@ -33,12 +34,17 @@
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Tipe Import</label>
                         <select name="type" class="form-select form-select-sm" required>
-                            <option value="students">Data Siswa</option>
-                            <option value="employees">Data Pegawai</option>
-                            <option value="diseases">Data Penyakit</option>
-                            <option value="medications">Data Obat</option>
-                            <option value="visits">Data Kunjungan</option>
+                            <option value="" disabled {{ old('type') ? '' : 'selected' }}>Pilih tipe import...</option>
+                            <option value="students" {{ old('type') === 'students' ? 'selected' : '' }}>Data Siswa</option>
+                            <option value="student_details" {{ old('type') === 'student_details' ? 'selected' : '' }}>Detail Siswa</option>
+                            <option value="employees" {{ old('type') === 'employees' ? 'selected' : '' }}>Data Pegawai</option>
+                            <option value="diseases" {{ old('type') === 'diseases' ? 'selected' : '' }}>Data Penyakit</option>
+                            <option value="medications" {{ old('type') === 'medications' ? 'selected' : '' }}>Data Obat</option>
+                            <option value="visits" {{ old('type') === 'visits' ? 'selected' : '' }}>Data Kunjungan</option>
                         </select>
+                        @error('type')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Pilih File (.xlsx, .xls, .csv)</label>
