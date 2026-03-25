@@ -220,12 +220,44 @@
         flex-wrap: wrap;
         gap: .35rem;
     }
-    .student-empty-state {
+.student-empty-state {
         border: 1px dashed var(--border);
         border-radius: 14px;
         padding: 1rem;
         color: var(--text-muted);
         text-align: center;
+    }
+    .student-edit-modal .modal-dialog {
+        max-width: 1040px;
+    }
+    .student-edit-modal .modal-content {
+        max-height: calc(100vh - 2rem);
+    }
+    .student-edit-modal .modal-body {
+        overflow-y: auto;
+        max-height: calc(100vh - 12.5rem);
+    }
+    .student-edit-modal .tab-pane {
+        min-height: 320px;
+    }
+    .student-edit-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: .85rem 1rem;
+    }
+    .student-edit-grid .form-check {
+        min-height: 2.2rem;
+        display: flex;
+        align-items: center;
+        margin-top: 1.7rem;
+    }
+    @media (max-width: 576px) {
+        .student-edit-modal .modal-content {
+            max-height: calc(100vh - 1rem);
+        }
+        .student-edit-modal .modal-body {
+            max-height: calc(100vh - 11rem);
+        }
     }
     html[data-theme='dark'] .student-detail-modal .modal-content {
         background: var(--bg-surface);
@@ -574,6 +606,9 @@
         <div class="modal-content">
             <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title">Detail Siswa</h5>
+                <button type="button" class="btn btn-outline-warning btn-sm me-2 d-none" id="studentDetailEditBtn">
+                    <i class="bi bi-pencil-square me-1"></i>Edit Detail
+                </button>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body pt-3">
@@ -655,6 +690,61 @@
     </div>
 </div>
 
+<div class="modal fade student-edit-modal" id="studentDetailEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form id="studentDetailEditForm" method="POST">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="detail_form" value="1">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Detail Siswa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info small py-2">
+                        Simpan dilakukan sinkron dalam satu kali submit.
+                    </div>
+                    <ul class="nav nav-pills student-pill-nav gap-2 mb-3" id="studentDetailEditTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#student-edit-biodata" type="button">Biodata</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#student-edit-health" type="button">Kesehatan</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#student-edit-learning" type="button">Belajar</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#student-edit-home" type="button">Rumah</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#student-edit-family" type="button">Keluarga</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="student-edit-biodata"></div>
+                        <div class="tab-pane fade" id="student-edit-health"></div>
+                        <div class="tab-pane fade" id="student-edit-learning"></div>
+                        <div class="tab-pane fade" id="student-edit-home"></div>
+                        <div class="tab-pane fade" id="student-edit-family"></div>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary" id="studentDetailPrevStep">Prev</button>
+                        <button type="button" class="btn btn-outline-secondary" id="studentDetailNextStep">Next</button>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan Detail</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <datalist id="studentClassSuggestions">
     @foreach($classSuggestions as $className)
         <option value="{{ $className }}"></option>
@@ -678,9 +768,24 @@
         const zoomTitle = document.getElementById('studentAvatarZoomTitle');
         const detailModalEl = document.getElementById('studentDetailModal');
         const detailModal = new bootstrap.Modal(detailModalEl);
+        const detailEditModalEl = document.getElementById('studentDetailEditModal');
+        const detailEditModal = new bootstrap.Modal(detailEditModalEl);
         const detailLoading = document.getElementById('studentDetailLoading');
         const detailContent = document.getElementById('studentDetailContent');
         const detailError = document.getElementById('studentDetailError');
+        const detailEditBtn = document.getElementById('studentDetailEditBtn');
+        const detailEditForm = document.getElementById('studentDetailEditForm');
+        const detailEditTabs = document.getElementById('studentDetailEditTabs');
+        const prevStepBtn = document.getElementById('studentDetailPrevStep');
+        const nextStepBtn = document.getElementById('studentDetailNextStep');
+        const editTabIds = [
+            '#student-edit-biodata',
+            '#student-edit-health',
+            '#student-edit-learning',
+            '#student-edit-home',
+            '#student-edit-family',
+        ];
+        let currentDetailData = null;
 
         const createAvatarInput = document.getElementById('create_avatar_input');
         const createAvatarPreview = document.getElementById('create_avatar_preview');
@@ -883,6 +988,9 @@
         }
 
         function renderStudentDetail(data) {
+            currentDetailData = data;
+            detailEditBtn.classList.remove('d-none');
+            detailEditBtn.dataset.studentId = data.id;
             renderAvatar(data);
             detailEls.name.textContent = formatValue(data.name);
             detailEls.nickname.textContent = data.nickname ? 'Panggilan: ' + data.nickname : '';
@@ -1010,6 +1118,8 @@
             if (!url) return;
 
             resetDetailState();
+            currentDetailData = null;
+            detailEditBtn.classList.add('d-none');
             detailModal.show();
 
             try {
@@ -1031,6 +1141,213 @@
             } catch (error) {
                 showDetailError(error.message || 'Gagal memuat detail siswa.');
             }
+        }
+
+        function createField(def, value) {
+            const wrapper = document.createElement('div');
+            if (def.type === 'checkbox') {
+                wrapper.className = 'form-check';
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = def.name;
+                hidden.value = '0';
+                wrapper.appendChild(hidden);
+
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.className = 'form-check-input';
+                input.name = def.name;
+                input.value = '1';
+                input.id = 'fld_' + def.name;
+                input.checked = !!value;
+                wrapper.appendChild(input);
+
+                const label = document.createElement('label');
+                label.className = 'form-check-label ms-2';
+                label.setAttribute('for', input.id);
+                label.textContent = def.label;
+                wrapper.appendChild(label);
+                return wrapper;
+            }
+
+            const label = document.createElement('label');
+            label.className = 'form-label small fw-semibold';
+            label.textContent = def.label;
+            wrapper.appendChild(label);
+
+            let input;
+            if (def.type === 'textarea') {
+                input = document.createElement('textarea');
+                input.rows = def.rows || 2;
+            } else {
+                input = document.createElement('input');
+                input.type = def.type || 'text';
+                if (def.step) input.step = def.step;
+                if (def.min !== undefined) input.min = String(def.min);
+            }
+
+            input.className = 'form-control form-control-sm';
+            input.name = def.name;
+            input.value = value ?? '';
+            wrapper.appendChild(input);
+
+            return wrapper;
+        }
+
+        function familyMemberByType(data, type) {
+            const list = data?.family_members || [];
+            return list.find(item => item.relation_type === type) || {};
+        }
+
+        function renderEditSection(containerId, fields, dataSource) {
+            const container = document.querySelector(containerId);
+            if (!container) return;
+            container.innerHTML = '<div class="student-edit-grid"></div>';
+            const grid = container.querySelector('.student-edit-grid');
+            fields.forEach(def => {
+                const val = typeof dataSource === 'function' ? dataSource(def.name) : dataSource?.[def.name];
+                grid.appendChild(createField(def, val));
+            });
+        }
+
+        function renderEditDetailForm(data) {
+            const studentAction = "{{ url('admin/master/students/__ID__/detail') }}".replace('__ID__', data.id);
+            detailEditForm.action = studentAction;
+
+            const biodataFields = [
+                { name: 'nickname', label: 'Nama Panggilan' },
+                { name: 'nik_kitas', label: 'NIK/No. KITAS' },
+                { name: 'family_card_number', label: 'No. KK' },
+                { name: 'birth_place', label: 'Tempat Lahir' },
+                { name: 'birth_date', label: 'Tanggal Lahir', type: 'date' },
+                { name: 'birth_certificate_number', label: 'No. Akta Lahir' },
+                { name: 'religion', label: 'Agama' },
+                { name: 'citizenship', label: 'Kewarganegaraan' },
+                { name: 'daily_language', label: 'Bahasa Sehari-hari' },
+                { name: 'whatsapp_number', label: 'WhatsApp' },
+                { name: 'email', label: 'Email', type: 'email' },
+                { name: 'address_text', label: 'Alamat', type: 'textarea', rows: 2 },
+                { name: 'notes', label: 'Catatan', type: 'textarea', rows: 2 },
+            ];
+
+            const healthFields = [
+                { name: 'height_cm', label: 'Tinggi (cm)', type: 'number', min: 0 },
+                { name: 'weight_kg', label: 'Berat (kg)', type: 'number', step: '0.01', min: 0 },
+                { name: 'head_circumference_cm', label: 'Lingkar Kepala (cm)', type: 'number', step: '0.01', min: 0 },
+                { name: 'blood_type', label: 'Gol. Darah' },
+                { name: 'rhesus', label: 'Rhesus' },
+                { name: 'eye_condition', label: 'Keadaan Mata' },
+                { name: 'has_eye_disorder', label: 'Kelainan Mata', type: 'checkbox' },
+                { name: 'assistive_device', label: 'Alat Bantu' },
+                { name: 'ear_condition', label: 'Keadaan Telinga' },
+                { name: 'uses_hearing_aid', label: 'Pakai Alat Bantu Dengar', type: 'checkbox' },
+                { name: 'face_shape', label: 'Bentuk Wajah' },
+                { name: 'hair_type', label: 'Jenis Rambut' },
+                { name: 'skin_tone', label: 'Warna Kulit' },
+                { name: 'past_diseases', label: 'Riwayat Penyakit', type: 'textarea', rows: 2 },
+                { name: 'ever_hospitalized', label: 'Pernah Rawat Inap', type: 'checkbox' },
+                { name: 'has_recurring_disease', label: 'Penyakit Kambuh', type: 'checkbox' },
+                { name: 'surgery_history', label: 'Riwayat Operasi', type: 'textarea', rows: 2 },
+                { name: 'relapse_treatment', label: 'Penanganan Kambuh', type: 'textarea', rows: 2 },
+                { name: 'drug_food_allergies', label: 'Alergi Obat/Makanan', type: 'textarea', rows: 2 },
+            ];
+
+            const learningFields = [
+                { name: 'smp_school_name', label: 'Asal SMP' },
+                { name: 'smp_npsn', label: 'NPSN SMP' },
+                { name: 'smp_study_duration_months', label: 'Lama Belajar (bulan)', type: 'number', min: 0 },
+                { name: 'ever_repeated_grade', label: 'Pernah Tinggal Kelas', type: 'checkbox' },
+                { name: 'achievements', label: 'Prestasi', type: 'textarea', rows: 2 },
+                { name: 'receives_scholarship', label: 'Menerima Beasiswa', type: 'checkbox' },
+                { name: 'extracurricular_smp', label: 'Ekskul SMP' },
+                { name: 'sports_hobby', label: 'Hobi Olahraga' },
+                { name: 'arts_hobby', label: 'Hobi Kesenian' },
+                { name: 'other_hobby', label: 'Hobi Lainnya' },
+                { name: 'talent_field', label: 'Bidang Bakat' },
+                { name: 'has_leisure_time', label: 'Punya Waktu Senggang', type: 'checkbox' },
+                { name: 'reading_start_age_months', label: 'Mulai Membaca (bulan)', type: 'number', min: 0 },
+                { name: 'writing_start_age_months', label: 'Mulai Menulis (bulan)', type: 'number', min: 0 },
+                { name: 'counting_start_age_months', label: 'Mulai Berhitung (bulan)', type: 'number', min: 0 },
+                { name: 'speaking_start_age_months', label: 'Mulai Berbicara (bulan)', type: 'number', min: 0 },
+                { name: 'start_kb_tk_age_months', label: 'Masuk KB/TK (bulan)', type: 'number', min: 0 },
+                { name: 'start_sd_age_months', label: 'Masuk SD (bulan)', type: 'number', min: 0 },
+                { name: 'start_smp_age_months', label: 'Masuk SMP (bulan)', type: 'number', min: 0 },
+                { name: 'likes_school', label: 'Senang di Sekolah', type: 'checkbox' },
+                { name: 'likes_play_with', label: 'Senang Bermain Dengan' },
+                { name: 'likes_game_type', label: 'Suka Permainan' },
+                { name: 'preferred_activity', label: 'Lebih Suka Aktivitas' },
+                { name: 'concentration_level', label: 'Tingkat Konsentrasi' },
+                { name: 'task_completion_style', label: 'Penyelesaian Tugas' },
+                { name: 'imagination_role', label: 'Peran Imajinasi' },
+                { name: 'has_home_study_group', label: 'Punya Kelompok Belajar', type: 'checkbox' },
+                { name: 'study_group_beneficial', label: 'Kelompok Belajar Bermanfaat', type: 'checkbox' },
+                { name: 'attends_tutoring', label: 'Ikut Bimbel', type: 'checkbox' },
+                { name: 'tutoring_institution', label: 'Lembaga Bimbel' },
+                { name: 'self_study_hours_per_day', label: 'Jam Belajar Mandiri/Hari', type: 'number', step: '0.01', min: 0 },
+                { name: 'has_home_study_schedule', label: 'Punya Jadwal Belajar', type: 'checkbox' },
+                { name: 'common_study_time', label: 'Waktu Belajar Umum' },
+                { name: 'asks_curiosity_questions', label: 'Sering Bertanya', type: 'checkbox' },
+                { name: 'curiosity_topics', label: 'Topik Rasa Ingin Tahu', type: 'textarea', rows: 2 },
+            ];
+
+            const homeFields = [
+                { name: 'home_to_school_distance_km', label: 'Jarak ke Sekolah (km)', type: 'number', step: '0.01', min: 0 },
+                { name: 'home_to_school_travel_minutes', label: 'Waktu Tempuh (menit)', type: 'number', min: 0 },
+                { name: 'transport_mode', label: 'Moda Transportasi' },
+                { name: 'household_vehicle', label: 'Kendaraan di Rumah' },
+                { name: 'living_environment', label: 'Lingkungan Tempat Tinggal' },
+                { name: 'home_lighting_condition', label: 'Kondisi Penerangan' },
+                { name: 'bedroom_condition', label: 'Ruang Tidur' },
+                { name: 'study_room_condition', label: 'Ruang Belajar' },
+                { name: 'learning_tools', label: 'Perlengkapan Belajar' },
+                { name: 'has_musical_instruments', label: 'Punya Alat Musik', type: 'checkbox' },
+                { name: 'musical_instrument_1', label: 'Alat Musik 1' },
+                { name: 'musical_instrument_2', label: 'Alat Musik 2' },
+                { name: 'has_sports_equipment', label: 'Punya Alat Olahraga', type: 'checkbox' },
+                { name: 'sports_equipment_1', label: 'Alat Olahraga 1' },
+                { name: 'sports_equipment_2', label: 'Alat Olahraga 2' },
+            ];
+
+            const familyDefs = [
+                ['father', 'Ayah'],
+                ['mother', 'Ibu'],
+                ['guardian', 'Wali'],
+            ];
+
+            renderEditSection('#student-edit-biodata', biodataFields, data);
+            renderEditSection('#student-edit-health', healthFields, name => (data.health?.[name] ?? data.medical_history?.[name]));
+            renderEditSection('#student-edit-learning', learningFields, name => (data.previous_school?.[name] ?? data.learning_profile?.[name]));
+            renderEditSection('#student-edit-home', homeFields, name => (data.home_assets?.[name]));
+
+            const familyContainer = document.querySelector('#student-edit-family');
+            familyContainer.innerHTML = '';
+            familyDefs.forEach(([key, label]) => {
+                const member = familyMemberByType(data, key);
+                const section = document.createElement('div');
+                section.className = 'student-detail-section mb-3';
+                section.innerHTML = `<h6 class="fw-bold mb-3">${label}</h6><div class="student-edit-grid"></div>`;
+                const grid = section.querySelector('.student-edit-grid');
+                [
+                    { name: `${key}_full_name`, label: `Nama ${label}` },
+                    { name: `${key}_nik`, label: 'NIK' },
+                    { name: `${key}_birth_year`, label: 'Tahun Lahir', type: 'number', min: 1900 },
+                    { name: `${key}_whatsapp_number`, label: 'WhatsApp' },
+                    { name: `${key}_email`, label: 'Email', type: 'email' },
+                    { name: `${key}_occupation`, label: 'Pekerjaan' },
+                    { name: `${key}_education`, label: 'Pendidikan' },
+                    { name: `${key}_monthly_income`, label: 'Penghasilan/Bulan', type: 'number', min: 0 },
+                    { name: `${key}_relationship_detail`, label: 'Hubungan Detail' },
+                    { name: `${key}_is_guardian`, label: 'Sebagai Guardian', type: 'checkbox' },
+                    { name: `${key}_is_emergency_contact`, label: 'Kontak Darurat', type: 'checkbox' },
+                    { name: `${key}_is_primary_contact`, label: 'Kontak Utama', type: 'checkbox' },
+                    { name: `${key}_lives_with_student`, label: 'Tinggal Serumah', type: 'checkbox' },
+                    { name: `${key}_notes`, label: 'Catatan', type: 'textarea', rows: 2 },
+                ].forEach(def => {
+                    const sourceKey = def.name.replace(`${key}_`, '');
+                    grid.appendChild(createField(def, member[sourceKey]));
+                });
+                familyContainer.appendChild(section);
+            });
         }
 
         function openCropper(file, context) {
@@ -1117,6 +1434,13 @@
                 return;
             }
 
+            if (e.target.closest('#studentDetailEditBtn')) {
+                if (!currentDetailData) return;
+                renderEditDetailForm(currentDetailData);
+                detailEditModal.show();
+                return;
+            }
+
             const btn = e.target.closest('.btn-edit-student');
             if (!btn) return;
 
@@ -1187,6 +1511,24 @@
             } finally {
                 removeAvatarBtn.disabled = false;
                 removeAvatarBtn.innerHTML = originalHtml;
+            }
+        });
+
+        prevStepBtn?.addEventListener('click', function () {
+            const active = detailEditTabs.querySelector('.nav-link.active');
+            const items = Array.from(detailEditTabs.querySelectorAll('.nav-link'));
+            const idx = items.indexOf(active);
+            if (idx > 0) {
+                bootstrap.Tab.getOrCreateInstance(items[idx - 1]).show();
+            }
+        });
+
+        nextStepBtn?.addEventListener('click', function () {
+            const active = detailEditTabs.querySelector('.nav-link.active');
+            const items = Array.from(detailEditTabs.querySelectorAll('.nav-link'));
+            const idx = items.indexOf(active);
+            if (idx < items.length - 1) {
+                bootstrap.Tab.getOrCreateInstance(items[idx + 1]).show();
             }
         });
 

@@ -64,6 +64,7 @@ Route::middleware(['auth', 'permission'])->group(function () {
         // Master Data CRUD
         Route::prefix('master')->name('master.')->group(function () {
             Route::get('students/search', [StudentController::class, 'search'])->name('students.search');
+            Route::put('students/{student}/detail', [StudentController::class, 'updateDetail'])->name('students.update-detail');
             Route::delete('students/{student}/avatar', [StudentController::class, 'removeAvatar'])->name('students.remove-avatar');
             Route::resource('students', StudentController::class)->names('students');
 
