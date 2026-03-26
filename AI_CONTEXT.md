@@ -221,9 +221,20 @@ Before coding:
 After coding:
 
 1. Run route sanity checks (`php artisan route:list`).
-2. Run permission sync when route names change (`php artisan permission:sync`).
-3. Run tests (`php artisan test`) even if coverage is minimal.
-4. Re-check report outputs and import error reporting if visit/data model is changed.
+2. If a task adds or changes routable access, run permission sync (`php artisan permission:sync`) immediately.
+3. Intelligently assign any new permissions to the most appropriate existing roles, using least-privilege defaults if uncertain.
+4. Run tests (`php artisan test`) even if coverage is minimal.
+5. Re-check report outputs and import error reporting if visit/data model is changed.
+6. Create a git commit at the end of each completed task with a message scoped to that task.
+
+## Working Rules
+Repository-level working rules agreed during collaboration:
+
+1. Every feature that introduces new access points, route names, or protected actions must also update permissions in the database during the same task.
+2. New permissions should be assigned to the most appropriate existing roles as part of the same task, rather than being left unassigned by default.
+3. Permission assignment should be conservative: prefer least-privilege behavior when a role mapping is ambiguous, and surface special cases explicitly.
+4. Each completed task should end with a git commit created immediately after verification, with a commit message that matches the scope of that task.
+5. If additional team rules are proposed later, they should be confirmed and then recorded here so future work stays consistent.
 
 ## Quick Command Reference
 Setup / install:
