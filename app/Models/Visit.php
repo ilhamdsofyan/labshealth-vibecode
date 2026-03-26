@@ -18,6 +18,12 @@ class Visit extends Model
         'gender',
         'patient_category',
         'class_or_department',
+        'height_cm',
+        'weight_kg',
+        'blood_pressure',
+        'heart_rate',
+        'respiratory_rate',
+        'temperature_c',
         'complaint',
         'disease_id',
         'medication_id',
@@ -41,6 +47,11 @@ class Visit extends Model
             'visit_date' => 'date',
             'is_acc_pulang' => 'boolean',
             'is_rest' => 'boolean',
+            'height_cm' => 'decimal:2',
+            'weight_kg' => 'decimal:2',
+            'heart_rate' => 'integer',
+            'respiratory_rate' => 'integer',
+            'temperature_c' => 'decimal:2',
         ];
     }
 

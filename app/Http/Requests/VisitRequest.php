@@ -31,6 +31,12 @@ class VisitRequest extends FormRequest
             'additional_info' => ['required_if:patient_category,UMUM', 'nullable', 'string'],
             
             'class_or_department' => ['nullable', 'string', 'max:255'],
+            'height_cm' => ['nullable', 'numeric', 'min:0', 'max:300'],
+            'weight_kg' => ['nullable', 'numeric', 'min:0', 'max:500'],
+            'blood_pressure' => ['nullable', 'string', 'max:20'],
+            'heart_rate' => ['nullable', 'integer', 'min:0', 'max:300'],
+            'respiratory_rate' => ['nullable', 'integer', 'min:0', 'max:120'],
+            'temperature_c' => ['nullable', 'numeric', 'min:30', 'max:45'],
             'complaint' => ['required', 'string'],
             'therapy' => ['nullable', 'string'],
             'officer_name' => ['required', 'string', 'max:255'],
@@ -55,6 +61,12 @@ class VisitRequest extends FormRequest
             'complaint.required' => 'Keluhan wajib diisi.',
             'officer_name.required' => 'Nama petugas wajib diisi.',
             'acc_pulang_reason.required_if' => 'Alasan Acc Pulang wajib diisi jika dicentang.',
+            'height_cm.numeric' => 'Tinggi badan harus berupa angka.',
+            'weight_kg.numeric' => 'Berat badan harus berupa angka.',
+            'blood_pressure.max' => 'Tekanan darah maksimal 20 karakter.',
+            'heart_rate.integer' => 'Heart rate harus berupa angka bulat.',
+            'respiratory_rate.integer' => 'RR harus berupa angka bulat.',
+            'temperature_c.numeric' => 'Temperature harus berupa angka.',
         ];
     }
 }

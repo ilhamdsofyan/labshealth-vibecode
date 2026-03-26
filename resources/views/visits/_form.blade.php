@@ -92,6 +92,79 @@
         @error('class_or_department') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
+    <div class="col-12">
+        <div class="card border-0 shadow-sm bg-light bg-opacity-50">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <div>
+                        <h6 class="fw-bold mb-1">Pemeriksaan Standar</h6>
+                        <p class="text-muted small mb-0">Isi hasil pengukuran dasar dan tanda-tanda vital pengunjung bila tersedia.</p>
+                    </div>
+                    <span class="badge text-bg-light border">Opsional</span>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-3 col-6">
+                        <label class="form-label small fw-semibold">Tinggi Badan</label>
+                        <div class="input-group">
+                            <input type="number" step="0.01" min="0" max="300" name="height_cm" class="form-control @error('height_cm') is-invalid @enderror"
+                                   value="{{ old('height_cm', $visit->height_cm ?? '') }}" placeholder="Contoh: 165">
+                            <span class="input-group-text">cm</span>
+                        </div>
+                        @error('height_cm') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="col-md-3 col-6">
+                        <label class="form-label small fw-semibold">Berat Badan</label>
+                        <div class="input-group">
+                            <input type="number" step="0.01" min="0" max="500" name="weight_kg" class="form-control @error('weight_kg') is-invalid @enderror"
+                                   value="{{ old('weight_kg', $visit->weight_kg ?? '') }}" placeholder="Contoh: 52.5">
+                            <span class="input-group-text">kg</span>
+                        </div>
+                        @error('weight_kg') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="col-md-3 col-6">
+                        <label class="form-label small fw-semibold">Tekanan Darah</label>
+                        <input type="text" name="blood_pressure" class="form-control @error('blood_pressure') is-invalid @enderror"
+                               value="{{ old('blood_pressure', $visit->blood_pressure ?? '') }}" placeholder="Contoh: 110/70">
+                        @error('blood_pressure') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="col-md-3 col-6">
+                        <label class="form-label small fw-semibold">Temperature</label>
+                        <div class="input-group">
+                            <input type="number" step="0.01" min="30" max="45" name="temperature_c" class="form-control @error('temperature_c') is-invalid @enderror"
+                                   value="{{ old('temperature_c', $visit->temperature_c ?? '') }}" placeholder="Contoh: 36.7">
+                            <span class="input-group-text">&deg;C</span>
+                        </div>
+                        @error('temperature_c') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="col-md-6 col-6">
+                        <label class="form-label small fw-semibold">Heart Rate</label>
+                        <div class="input-group">
+                            <input type="number" min="0" max="300" name="heart_rate" class="form-control @error('heart_rate') is-invalid @enderror"
+                                   value="{{ old('heart_rate', $visit->heart_rate ?? '') }}" placeholder="Contoh: 88">
+                            <span class="input-group-text">bpm</span>
+                        </div>
+                        @error('heart_rate') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="col-md-6 col-6">
+                        <label class="form-label small fw-semibold">RR</label>
+                        <div class="input-group">
+                            <input type="number" min="0" max="120" name="respiratory_rate" class="form-control @error('respiratory_rate') is-invalid @enderror"
+                                   value="{{ old('respiratory_rate', $visit->respiratory_rate ?? '') }}" placeholder="Contoh: 20">
+                            <span class="input-group-text">x/menit</span>
+                        </div>
+                        @error('respiratory_rate') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @php
         $oldDiseaseIds = collect(old('disease_ids', isset($visit) ? $visit->diseases->pluck('id')->all() : []))
             ->filter()

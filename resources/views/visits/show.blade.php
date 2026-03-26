@@ -103,6 +103,60 @@
                     </div>
                 </div>
 
+                @php
+                    $hasStandardExam =
+                        $visit->height_cm !== null ||
+                        $visit->weight_kg !== null ||
+                        $visit->blood_pressure !== null ||
+                        $visit->heart_rate !== null ||
+                        $visit->respiratory_rate !== null ||
+                        $visit->temperature_c !== null;
+                @endphp
+
+                @if($hasStandardExam)
+                    <div class="mb-4">
+                        <label class="small text-muted d-block mb-2">PEMERIKSAAN STANDAR</label>
+                        <div class="row g-3">
+                            <div class="col-md-4 col-6">
+                                <div class="p-3 bg-light rounded border h-100">
+                                    <div class="small text-muted mb-1">Tinggi Badan</div>
+                                    <div class="fw-bold">{{ $visit->height_cm !== null ? rtrim(rtrim(number_format((float) $visit->height_cm, 2, '.', ''), '0'), '.') . ' cm' : '-' }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <div class="p-3 bg-light rounded border h-100">
+                                    <div class="small text-muted mb-1">Berat Badan</div>
+                                    <div class="fw-bold">{{ $visit->weight_kg !== null ? rtrim(rtrim(number_format((float) $visit->weight_kg, 2, '.', ''), '0'), '.') . ' kg' : '-' }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <div class="p-3 bg-light rounded border h-100">
+                                    <div class="small text-muted mb-1">Tekanan Darah</div>
+                                    <div class="fw-bold">{{ $visit->blood_pressure ?: '-' }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <div class="p-3 bg-light rounded border h-100">
+                                    <div class="small text-muted mb-1">Heart Rate</div>
+                                    <div class="fw-bold">{{ $visit->heart_rate !== null ? $visit->heart_rate . ' bpm' : '-' }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <div class="p-3 bg-light rounded border h-100">
+                                    <div class="small text-muted mb-1">RR</div>
+                                    <div class="fw-bold">{{ $visit->respiratory_rate !== null ? $visit->respiratory_rate . ' x/menit' : '-' }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <div class="p-3 bg-light rounded border h-100">
+                                    <div class="small text-muted mb-1">Temperature</div>
+                                    <div class="fw-bold">{{ $visit->temperature_c !== null ? rtrim(rtrim(number_format((float) $visit->temperature_c, 2, '.', ''), '0'), '.') . ' °C' : '-' }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 <div class="mb-4">
                     <label class="small text-muted d-block mb-1">TERAPI / TINDAKAN</label>
                     <p class="fw-medium">{{ $visit->therapy ?? '-' }}</p>
