@@ -606,6 +606,9 @@
         <div class="modal-content">
             <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title">Detail Siswa</h5>
+                <a href="#" class="btn btn-outline-primary btn-sm me-2 d-none" id="studentDetailHistoryBtn">
+                    <i class="bi bi-clock-history me-1"></i>History
+                </a>
                 <button type="button" class="btn btn-outline-warning btn-sm me-2 d-none" id="studentDetailEditBtn">
                     <i class="bi bi-pencil-square me-1"></i>Edit Detail
                 </button>
@@ -773,6 +776,7 @@
         const detailLoading = document.getElementById('studentDetailLoading');
         const detailContent = document.getElementById('studentDetailContent');
         const detailError = document.getElementById('studentDetailError');
+        const detailHistoryBtn = document.getElementById('studentDetailHistoryBtn');
         const detailEditBtn = document.getElementById('studentDetailEditBtn');
         const detailEditForm = document.getElementById('studentDetailEditForm');
         const detailEditTabs = document.getElementById('studentDetailEditTabs');
@@ -991,6 +995,8 @@
             currentDetailData = data;
             detailEditBtn.classList.remove('d-none');
             detailEditBtn.dataset.studentId = data.id;
+            detailHistoryBtn.classList.remove('d-none');
+            detailHistoryBtn.href = "{{ url('riwayat-kunjungan/siswa') }}/" + data.id;
             renderAvatar(data);
             detailEls.name.textContent = formatValue(data.name);
             detailEls.nickname.textContent = data.nickname ? 'Panggilan: ' + data.nickname : '';
@@ -1120,6 +1126,8 @@
             resetDetailState();
             currentDetailData = null;
             detailEditBtn.classList.add('d-none');
+            detailHistoryBtn.classList.add('d-none');
+            detailHistoryBtn.href = '#';
             detailModal.show();
 
             try {

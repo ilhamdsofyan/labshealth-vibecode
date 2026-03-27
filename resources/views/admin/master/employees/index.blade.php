@@ -105,6 +105,56 @@
         from { opacity: 0; transform: translateY(6px); }
         to { opacity: 1; transform: translateY(0); }
     }
+    .employee-detail-trigger {
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        text-align: left;
+        color: inherit;
+    }
+    .employee-detail-modal .modal-dialog {
+        max-width: 920px;
+    }
+    .employee-detail-modal .modal-content {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: var(--bg-surface);
+    }
+    .employee-detail-section {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1rem;
+        background: var(--bg-surface);
+    }
+    .employee-detail-table {
+        width: 100%;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .employee-detail-table th,
+    .employee-detail-table td {
+        padding: .7rem .85rem;
+        vertical-align: top;
+        border-bottom: 1px solid var(--border);
+    }
+    .employee-detail-table tr:last-child th,
+    .employee-detail-table tr:last-child td {
+        border-bottom: 0;
+    }
+    .employee-detail-table th {
+        width: 34%;
+        font-size: .78rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        background: color-mix(in srgb, var(--primary) 4%, #fff 96%);
+    }
+    .employee-detail-table td {
+        color: var(--text-main);
+    }
 </style>
 @endpush
 
@@ -159,7 +209,12 @@
                                     @else
                                         <span class="employee-avatar">{{ $initial }}</span>
                                     @endif
-                                    <div>
+                                    <button
+                                        type="button"
+                                        class="employee-detail-trigger"
+                                        data-employee-detail
+                                        data-detail-url="{{ route('admin.master.employees.show', $employee) }}"
+                                    >
                                         <div class="fw-bold">{{ $employee->name }}</div>
                                         <div class="employee-meta">NIP: {{ $employee->nip }}</div>
                                         <div class="employee-meta">
@@ -168,7 +223,7 @@
                                             </span>
                                         </div>
                                         <div class="employee-meta mt-1">Unit: {{ $employee->department ?? '-' }}</div>
-                                    </div>
+                                    </button>
                                 </div>
                                 <div class="btn-group btn-group-sm">
                                     <button
@@ -179,6 +234,7 @@
                                         data-name="{{ $employee->name }}"
                                         data-role="{{ $employee->role_type }}"
                                         data-department="{{ $employee->department }}"
+                                        data-detail-url="{{ route('admin.master.employees.show', $employee) }}"
                                         data-avatar="{{ $employee->avatar_path ? asset('storage/' . $employee->avatar_path) : '' }}"
                                     >
                                         <i class="bi bi-pencil"></i>
@@ -261,6 +317,50 @@
                             @error('department') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         @endif
                     </div>
+                    <hr>
+                    <div class="small fw-bold text-primary mb-3">Medical Record</div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Tinggi Badan (cm)</label>
+                            <input type="number" name="height_cm" class="form-control" value="{{ old('edit_id') ? '' : old('height_cm') }}" min="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Berat Badan (kg)</label>
+                            <input type="number" name="weight_kg" class="form-control" value="{{ old('edit_id') ? '' : old('weight_kg') }}" min="0" step="0.01">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Golongan Darah</label>
+                            <input type="text" name="blood_type" class="form-control" value="{{ old('edit_id') ? '' : old('blood_type') }}" placeholder="A / B / AB / O">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Rhesus</label>
+                            <input type="text" name="rhesus" class="form-control" value="{{ old('edit_id') ? '' : old('rhesus') }}" placeholder="+ / -">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Terakhir Checkup</label>
+                            <input type="date" name="last_checkup_date" class="form-control" value="{{ old('edit_id') ? '' : old('last_checkup_date') }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Alergi</label>
+                            <textarea name="allergies" rows="2" class="form-control">{{ old('edit_id') ? '' : old('allergies') }}</textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Penyakit Kronis</label>
+                            <textarea name="chronic_diseases" rows="2" class="form-control">{{ old('edit_id') ? '' : old('chronic_diseases') }}</textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Riwayat Operasi</label>
+                            <textarea name="past_surgeries" rows="2" class="form-control">{{ old('edit_id') ? '' : old('past_surgeries') }}</textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Obat Rutin</label>
+                            <textarea name="regular_medications" rows="2" class="form-control">{{ old('edit_id') ? '' : old('regular_medications') }}</textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Catatan Medis</label>
+                            <textarea name="medical_notes" rows="2" class="form-control">{{ old('edit_id') ? '' : old('medical_notes') }}</textarea>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
@@ -325,6 +425,50 @@
                             @error('department') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         @endif
                     </div>
+                    <hr>
+                    <div class="small fw-bold text-primary mb-3">Medical Record</div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Tinggi Badan (cm)</label>
+                            <input type="number" id="edit_employee_height" name="height_cm" class="form-control" min="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Berat Badan (kg)</label>
+                            <input type="number" id="edit_employee_weight" name="weight_kg" class="form-control" min="0" step="0.01">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Golongan Darah</label>
+                            <input type="text" id="edit_employee_blood_type" name="blood_type" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Rhesus</label>
+                            <input type="text" id="edit_employee_rhesus" name="rhesus" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Terakhir Checkup</label>
+                            <input type="date" id="edit_employee_last_checkup" name="last_checkup_date" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Alergi</label>
+                            <textarea id="edit_employee_allergies" name="allergies" rows="2" class="form-control"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Penyakit Kronis</label>
+                            <textarea id="edit_employee_chronic" name="chronic_diseases" rows="2" class="form-control"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Riwayat Operasi</label>
+                            <textarea id="edit_employee_surgeries" name="past_surgeries" rows="2" class="form-control"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Obat Rutin</label>
+                            <textarea id="edit_employee_medications" name="regular_medications" rows="2" class="form-control"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Catatan Medis</label>
+                            <textarea id="edit_employee_medical_notes" name="medical_notes" rows="2" class="form-control"></textarea>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
@@ -367,6 +511,42 @@
     </div>
 </div>
 
+<div class="modal fade employee-detail-modal" id="employeeDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detail Pegawai</h5>
+                <a href="#" class="btn btn-outline-primary btn-sm me-2 d-none" id="employeeDetailHistoryBtn">
+                    <i class="bi bi-clock-history me-1"></i>History
+                </a>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="employeeDetailLoading" class="text-center text-muted py-5">Memuat detail pegawai...</div>
+                <div id="employeeDetailError" class="alert alert-danger d-none mb-0">Gagal memuat detail pegawai.</div>
+                <div id="employeeDetailContent" class="d-none">
+                    <div class="d-flex flex-column flex-lg-row align-items-start gap-3 mb-4">
+                        <div id="employeeDetailAvatarWrap"></div>
+                        <div class="flex-grow-1">
+                            <h4 class="fw-bold mb-1" id="employeeDetailName">-</h4>
+                            <div class="text-muted small mb-2" id="employeeDetailSummary">-</div>
+                            <div class="d-flex flex-wrap gap-2" id="employeeDetailFacts"></div>
+                        </div>
+                    </div>
+                    <div class="employee-detail-section mb-3">
+                        <h6 class="fw-bold mb-3">Identitas</h6>
+                        <div id="employeeDetailIdentity"></div>
+                    </div>
+                    <div class="employee-detail-section">
+                        <h6 class="fw-bold mb-3">Medical Record</h6>
+                        <div id="employeeDetailMedical"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <datalist id="employeeRoleSuggestions">
     @foreach($roleSuggestions as $role)
         <option value="{{ $role }}"></option>
@@ -394,6 +574,20 @@
         const zoomModal = new bootstrap.Modal(zoomModalEl);
         const zoomImage = document.getElementById('employeeAvatarZoomImage');
         const zoomTitle = document.getElementById('employeeAvatarZoomTitle');
+        const detailModalEl = document.getElementById('employeeDetailModal');
+        const detailModal = new bootstrap.Modal(detailModalEl);
+        const detailLoading = document.getElementById('employeeDetailLoading');
+        const detailError = document.getElementById('employeeDetailError');
+        const detailContent = document.getElementById('employeeDetailContent');
+        const detailHistoryBtn = document.getElementById('employeeDetailHistoryBtn');
+        const detailEls = {
+            avatarWrap: document.getElementById('employeeDetailAvatarWrap'),
+            name: document.getElementById('employeeDetailName'),
+            summary: document.getElementById('employeeDetailSummary'),
+            facts: document.getElementById('employeeDetailFacts'),
+            identity: document.getElementById('employeeDetailIdentity'),
+            medical: document.getElementById('employeeDetailMedical'),
+        };
 
         const createAvatarInput = document.getElementById('create_employee_avatar_input');
         const createAvatarPreview = document.getElementById('create_employee_avatar_preview');
@@ -412,6 +606,16 @@
             name: document.getElementById('edit_employee_name'),
             role: document.getElementById('edit_employee_role'),
             department: document.getElementById('edit_employee_department'),
+            height: document.getElementById('edit_employee_height'),
+            weight: document.getElementById('edit_employee_weight'),
+            bloodType: document.getElementById('edit_employee_blood_type'),
+            rhesus: document.getElementById('edit_employee_rhesus'),
+            lastCheckup: document.getElementById('edit_employee_last_checkup'),
+            allergies: document.getElementById('edit_employee_allergies'),
+            chronic: document.getElementById('edit_employee_chronic'),
+            surgeries: document.getElementById('edit_employee_surgeries'),
+            medications: document.getElementById('edit_employee_medications'),
+            medicalNotes: document.getElementById('edit_employee_medical_notes'),
         };
 
         function setPreview(previewEl, src) {
@@ -430,6 +634,108 @@
             zoomImage.src = src;
             zoomTitle.textContent = title || 'Foto Pegawai';
             zoomModal.show();
+        }
+
+        function formatValue(value, fallback = '-') {
+            if (value === null || value === undefined || value === '') return fallback;
+            if (typeof value === 'boolean') return value ? 'Ya' : 'Tidak';
+            return String(value);
+        }
+
+        function renderDetailGrid(container, items) {
+            const rows = items.filter(item => item.value !== null && item.value !== undefined && item.value !== '');
+            if (!rows.length) {
+                container.innerHTML = '<div class="text-muted small">Belum ada data.</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table employee-detail-table mb-0">
+                        <tbody>
+                            ${rows.map(item => `<tr><th>${item.label}</th><td>${formatValue(item.value)}</td></tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function resetDetailState() {
+            detailLoading.classList.remove('d-none');
+            detailError.classList.add('d-none');
+            detailContent.classList.add('d-none');
+            detailHistoryBtn.classList.add('d-none');
+            detailHistoryBtn.href = '#';
+        }
+
+        function renderEmployeeDetail(data) {
+            detailEls.name.textContent = formatValue(data.name);
+            detailEls.summary.textContent = [formatValue(data.nip), formatValue(data.role_type), formatValue(data.department)].join(' | ');
+            detailEls.facts.innerHTML = [
+                data.role_type ? `<span class="badge rounded-pill text-bg-light border">${data.role_type}</span>` : '',
+                data.department ? `<span class="badge rounded-pill text-bg-light border">${data.department}</span>` : '',
+            ].filter(Boolean).join('');
+
+            if (data.avatar_url) {
+                detailEls.avatarWrap.innerHTML = `<button type="button" class="avatar-zoom-trigger" data-avatar-zoom data-zoom-src="${data.avatar_url}" data-zoom-title="${formatValue(data.name, 'Foto Pegawai')}"><img src="${data.avatar_url}" alt="${formatValue(data.name, 'Pegawai')}" class="employee-photo" style="width:88px;height:88px;"></button>`;
+            } else {
+                detailEls.avatarWrap.innerHTML = `<span class="employee-avatar" style="width:88px;height:88px;font-size:2rem;">${formatValue(data.name, '?').charAt(0).toUpperCase()}</span>`;
+            }
+
+            renderDetailGrid(detailEls.identity, [
+                { label: 'NIP', value: data.nip },
+                { label: 'Nama', value: data.name },
+                { label: 'Tipe Pegawai', value: data.role_type },
+                { label: 'Bagian/Unit', value: data.department },
+            ]);
+
+            renderDetailGrid(detailEls.medical, [
+                { label: 'Tinggi Badan', value: data.medical_record?.height_cm ? data.medical_record.height_cm + ' cm' : '' },
+                { label: 'Berat Badan', value: data.medical_record?.weight_kg ? data.medical_record.weight_kg + ' kg' : '' },
+                { label: 'Golongan Darah', value: data.medical_record?.blood_type },
+                { label: 'Rhesus', value: data.medical_record?.rhesus },
+                { label: 'Alergi', value: data.medical_record?.allergies },
+                { label: 'Penyakit Kronis', value: data.medical_record?.chronic_diseases },
+                { label: 'Riwayat Operasi', value: data.medical_record?.past_surgeries },
+                { label: 'Obat Rutin', value: data.medical_record?.regular_medications },
+                { label: 'Terakhir Checkup', value: data.medical_record?.last_checkup_date },
+                { label: 'Catatan Medis', value: data.medical_record?.medical_notes },
+            ]);
+
+            detailHistoryBtn.classList.remove('d-none');
+            detailHistoryBtn.href = "{{ url('riwayat-kunjungan/pegawai') }}/" + data.id;
+            detailLoading.classList.add('d-none');
+            detailError.classList.add('d-none');
+            detailContent.classList.remove('d-none');
+        }
+
+        async function openEmployeeDetail(url) {
+            if (!url) return;
+            resetDetailState();
+            detailModal.show();
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                let body = {};
+                try { body = await response.json(); } catch (_) {}
+
+                if (!response.ok) {
+                    throw new Error(body.message || 'Gagal memuat detail pegawai.');
+                }
+
+                renderEmployeeDetail(body);
+            } catch (error) {
+                detailLoading.classList.add('d-none');
+                detailContent.classList.add('d-none');
+                detailError.classList.remove('d-none');
+                detailError.textContent = error.message || 'Gagal memuat detail pegawai.';
+            }
         }
 
         function openCropper(file, context) {
@@ -510,6 +816,12 @@
                 return;
             }
 
+            const detailTrigger = e.target.closest('[data-employee-detail]');
+            if (detailTrigger) {
+                openEmployeeDetail(detailTrigger.dataset.detailUrl);
+                return;
+            }
+
             const btn = e.target.closest('.btn-edit-employee');
             if (!btn) return;
 
@@ -520,6 +832,16 @@
             fields.name.value = btn.dataset.name || '';
             fields.role.value = btn.dataset.role || '';
             fields.department.value = btn.dataset.department || '';
+            fields.height.value = '';
+            fields.weight.value = '';
+            fields.bloodType.value = '';
+            fields.rhesus.value = '';
+            fields.lastCheckup.value = '';
+            fields.allergies.value = '';
+            fields.chronic.value = '';
+            fields.surgeries.value = '';
+            fields.medications.value = '';
+            fields.medicalNotes.value = '';
             editAvatarCroppedData.value = '';
             editAvatarInput.value = '';
             const currentAvatar = btn.dataset.avatar || '';
@@ -530,7 +852,28 @@
                 removeAvatarBtn.classList.toggle('d-none', !currentAvatar);
             }
 
-            editModal.show();
+            fetch(btn.dataset.detailUrl, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+                .then(response => response.ok ? response.json() : null)
+                .then(data => {
+                    if (data?.medical_record) {
+                        fields.height.value = data.medical_record.height_cm || '';
+                        fields.weight.value = data.medical_record.weight_kg || '';
+                        fields.bloodType.value = data.medical_record.blood_type || '';
+                        fields.rhesus.value = data.medical_record.rhesus || '';
+                        fields.lastCheckup.value = data.medical_record.last_checkup_date || '';
+                        fields.allergies.value = data.medical_record.allergies || '';
+                        fields.chronic.value = data.medical_record.chronic_diseases || '';
+                        fields.surgeries.value = data.medical_record.past_surgeries || '';
+                        fields.medications.value = data.medical_record.regular_medications || '';
+                        fields.medicalNotes.value = data.medical_record.medical_notes || '';
+                    }
+                })
+                .finally(() => editModal.show());
         });
 
         removeAvatarBtn?.addEventListener('click', async function () {
@@ -589,6 +932,16 @@
             fields.name.value = @json(old('name'));
             fields.role.value = @json(old('role_type'));
             fields.department.value = @json(old('department'));
+            fields.height.value = @json(old('height_cm'));
+            fields.weight.value = @json(old('weight_kg'));
+            fields.bloodType.value = @json(old('blood_type'));
+            fields.rhesus.value = @json(old('rhesus'));
+            fields.lastCheckup.value = @json(old('last_checkup_date'));
+            fields.allergies.value = @json(old('allergies'));
+            fields.chronic.value = @json(old('chronic_diseases'));
+            fields.surgeries.value = @json(old('past_surgeries'));
+            fields.medications.value = @json(old('regular_medications'));
+            fields.medicalNotes.value = @json(old('medical_notes'));
             setPreview(editAvatarPreview, @json(old('avatar_cropped_data')));
             if (removeAvatarBtn) {
                 removeAvatarBtn.dataset.url = "{{ url('admin/master/employees') }}/{{ old('edit_id') }}/avatar";

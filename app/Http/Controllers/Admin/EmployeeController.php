@@ -25,9 +25,42 @@ class EmployeeController extends Controller
             return [
                 'id' => $e->id,
                 'text' => "{$e->nip} - {$e->name} ({$e->role_type})",
+                'name' => $e->name,
+                'role_type' => $e->role_type,
+                'department' => $e->department,
                 'avatar' => $e->avatar_path ? asset('storage/' . $e->avatar_path) : null,
             ];
         }));
+    }
+
+    public function show(Request $request, Employee $employee): JsonResponse|RedirectResponse
+    {
+        if (! $request->expectsJson() && ! $request->ajax()) {
+            return redirect()->route('admin.master.employees.index');
+        }
+
+        $employee->loadMissing('medicalRecord');
+
+        return response()->json([
+            'id' => $employee->id,
+            'nip' => $employee->nip,
+            'name' => $employee->name,
+            'role_type' => $employee->role_type,
+            'department' => $employee->department,
+            'avatar_url' => $employee->avatar_path ? asset('storage/' . $employee->avatar_path) : null,
+            'medical_record' => [
+                'height_cm' => $employee->medicalRecord?->height_cm,
+                'weight_kg' => $employee->medicalRecord?->weight_kg,
+                'blood_type' => $employee->medicalRecord?->blood_type,
+                'rhesus' => $employee->medicalRecord?->rhesus,
+                'allergies' => $employee->medicalRecord?->allergies,
+                'chronic_diseases' => $employee->medicalRecord?->chronic_diseases,
+                'past_surgeries' => $employee->medicalRecord?->past_surgeries,
+                'regular_medications' => $employee->medicalRecord?->regular_medications,
+                'last_checkup_date' => $employee->medicalRecord?->last_checkup_date?->format('Y-m-d'),
+                'medical_notes' => $employee->medicalRecord?->medical_notes,
+            ],
+        ]);
     }
 
     public function index(Request $request): View
@@ -76,6 +109,16 @@ class EmployeeController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'role_type' => ['required', 'in:GURU,KARYAWAN,TENDIK,PETUGAS'],
             'department' => ['nullable', 'string', 'max:255'],
+            'height_cm' => ['nullable', 'integer', 'min:0', 'max:300'],
+            'weight_kg' => ['nullable', 'numeric', 'min:0', 'max:999.99'],
+            'blood_type' => ['nullable', 'in:A,B,AB,O'],
+            'rhesus' => ['nullable', 'in:+,-'],
+            'allergies' => ['nullable', 'string'],
+            'chronic_diseases' => ['nullable', 'string'],
+            'past_surgeries' => ['nullable', 'string'],
+            'regular_medications' => ['nullable', 'string'],
+            'last_checkup_date' => ['nullable', 'date'],
+            'medical_notes' => ['nullable', 'string'],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
             'avatar_cropped_data' => ['nullable', 'string'],
         ]);
@@ -91,6 +134,8 @@ class EmployeeController extends Controller
         if ($avatarPath) {
             $employee->update(['avatar_path' => $avatarPath]);
         }
+
+        $this->syncEmployeeMedicalRecord($employee, $validated);
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -114,6 +159,16 @@ class EmployeeController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'role_type' => ['required', 'in:GURU,KARYAWAN,TENDIK,PETUGAS'],
             'department' => ['nullable', 'string', 'max:255'],
+            'height_cm' => ['nullable', 'integer', 'min:0', 'max:300'],
+            'weight_kg' => ['nullable', 'numeric', 'min:0', 'max:999.99'],
+            'blood_type' => ['nullable', 'in:A,B,AB,O'],
+            'rhesus' => ['nullable', 'in:+,-'],
+            'allergies' => ['nullable', 'string'],
+            'chronic_diseases' => ['nullable', 'string'],
+            'past_surgeries' => ['nullable', 'string'],
+            'regular_medications' => ['nullable', 'string'],
+            'last_checkup_date' => ['nullable', 'date'],
+            'medical_notes' => ['nullable', 'string'],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
             'avatar_cropped_data' => ['nullable', 'string'],
         ]);
@@ -129,6 +184,8 @@ class EmployeeController extends Controller
         if ($avatarPath) {
             $employee->update(['avatar_path' => $avatarPath]);
         }
+
+        $this->syncEmployeeMedicalRecord($employee, $validated);
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -214,5 +271,30 @@ class EmployeeController extends Controller
         }
 
         return null;
+    }
+
+    private function syncEmployeeMedicalRecord(Employee $employee, array $validated): void
+    {
+        $attributes = array_filter([
+            'height_cm' => $validated['height_cm'] ?? null,
+            'weight_kg' => $validated['weight_kg'] ?? null,
+            'blood_type' => $validated['blood_type'] ?? null,
+            'rhesus' => $validated['rhesus'] ?? null,
+            'allergies' => $validated['allergies'] ?? null,
+            'chronic_diseases' => $validated['chronic_diseases'] ?? null,
+            'past_surgeries' => $validated['past_surgeries'] ?? null,
+            'regular_medications' => $validated['regular_medications'] ?? null,
+            'last_checkup_date' => $validated['last_checkup_date'] ?? null,
+            'medical_notes' => $validated['medical_notes'] ?? null,
+        ], static fn ($value) => $value !== null && $value !== '');
+
+        if (empty($attributes)) {
+            return;
+        }
+
+        $employee->medicalRecord()->updateOrCreate(
+            ['employee_id' => $employee->id],
+            $attributes
+        );
     }
 }

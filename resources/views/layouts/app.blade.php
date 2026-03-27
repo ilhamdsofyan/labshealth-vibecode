@@ -287,6 +287,35 @@
             border-color: color-mix(in srgb, var(--primary) 50%, var(--border));
             box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--primary) 18%, transparent);
         }
+        .quick-search-results {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            left: 0;
+            right: 0;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: var(--shadow-card);
+            padding: 0.35rem;
+            display: none;
+            z-index: 1050;
+        }
+        .quick-search-results.show {
+            display: block;
+        }
+        .quick-search-result-item {
+            display: block;
+            padding: 0.65rem 0.75rem;
+            border-radius: 10px;
+            text-decoration: none;
+        }
+        .quick-search-result-item:hover {
+            background: var(--bg-surface-soft);
+        }
+        .quick-search-result-item small {
+            display: block;
+            color: var(--text-muted);
+        }
 
         .btn-theme {
             border: 1px solid var(--border);
@@ -580,7 +609,8 @@
         <div class="header-tools">
             <div class="quick-search">
                 <i class="bi bi-search"></i>
-                <input type="text" placeholder="Search patients..." aria-label="Quick search">
+                <input type="text" placeholder="Cari siswa / pegawai..." aria-label="Quick search" id="visitorQuickSearch">
+                <div class="quick-search-results" id="visitorQuickSearchResults"></div>
             </div>
 
             <button type="button" class="btn-theme" id="themeToggle" title="Toggle Theme">
@@ -966,6 +996,69 @@
                     applyTheme(active === 'dark' ? 'light' : 'dark');
                 });
             }
+
+            const quickSearchInput = document.getElementById('visitorQuickSearch');
+            const quickSearchResults = document.getElementById('visitorQuickSearchResults');
+            let quickSearchTimer = null;
+
+            function hideQuickSearchResults() {
+                if (!quickSearchResults) return;
+                quickSearchResults.classList.remove('show');
+                quickSearchResults.innerHTML = '';
+            }
+
+            async function runVisitorQuickSearch(query) {
+                const response = await fetch(`{{ route('visitors.search') }}?q=${encodeURIComponent(query)}`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Gagal mencari data pengunjung.');
+                }
+
+                return response.json();
+            }
+
+            quickSearchInput?.addEventListener('input', function () {
+                const query = this.value.trim();
+                if (quickSearchTimer) clearTimeout(quickSearchTimer);
+
+                if (query.length < 2) {
+                    hideQuickSearchResults();
+                    return;
+                }
+
+                quickSearchTimer = window.setTimeout(async () => {
+                    try {
+                        const results = await runVisitorQuickSearch(query);
+                        if (!results.length) {
+                            quickSearchResults.innerHTML = '<div class="px-3 py-2 small text-muted">Tidak ada hasil.</div>';
+                            quickSearchResults.classList.add('show');
+                            return;
+                        }
+
+                        quickSearchResults.innerHTML = results.map(item => `
+                            <a href="${item.url}" class="quick-search-result-item">
+                                <div class="fw-semibold">${item.label}</div>
+                                <small>${item.type === 'student' ? 'Siswa' : 'Pegawai'}${item.meta ? ' | ' + item.meta : ''}</small>
+                            </a>
+                        `).join('');
+                        quickSearchResults.classList.add('show');
+                    } catch (_) {
+                        quickSearchResults.innerHTML = '<div class="px-3 py-2 small text-danger">Gagal memuat hasil pencarian.</div>';
+                        quickSearchResults.classList.add('show');
+                    }
+                }, 220);
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('.quick-search')) {
+                    hideQuickSearchResults();
+                }
+            });
         });
 
         if ('serviceWorker' in navigator) {

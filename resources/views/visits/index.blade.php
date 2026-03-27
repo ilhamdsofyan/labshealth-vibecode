@@ -90,7 +90,19 @@
                                     <div class="text-muted">{{ $visit->visit_time }}</div>
                                 </td>
                                 <td>
-                                    <div class="fw-bold text-dark">{{ $visit->patient_name }}</div>
+                                    <div class="fw-bold text-dark">
+                                        @if($visit->student)
+                                            <a href="{{ route('visitors.students.history', $visit->student) }}" class="text-decoration-none">
+                                                {{ $visit->patient_name }}
+                                            </a>
+                                        @elseif($visit->employee)
+                                            <a href="{{ route('visitors.employees.history', $visit->employee) }}" class="text-decoration-none">
+                                                {{ $visit->patient_name }}
+                                            </a>
+                                        @else
+                                            {{ $visit->patient_name }}
+                                        @endif
+                                    </div>
                                     <div class="small text-muted">
                                         @if($visit->student)
                                             NIS: {{ $visit->student->nis }}
