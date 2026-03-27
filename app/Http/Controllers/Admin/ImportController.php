@@ -8,6 +8,7 @@ use App\Imports\LegacyVisitImport;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Maatwebsite\Excel\HeadingRowImport;
 
 class ImportController extends Controller
@@ -80,9 +81,11 @@ class ImportController extends Controller
 
         Excel::import($importer, $file);
 
-        $log->update([
-            'failed_rows_data' => $this->trimFailedRowsForStorage($importer->failedRows),
-        ]);
+        if (Schema::hasColumn('import_logs', 'failed_rows_data')) {
+            $log->update([
+                'failed_rows_data' => $this->trimFailedRowsForStorage($importer->failedRows),
+            ]);
+        }
 
         $message = "Import " . ucfirst($type) . " selesai. Berhasil: {$importer->successCount}, Gagal: " . count($importer->failedRows);
 
