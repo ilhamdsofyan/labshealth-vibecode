@@ -257,7 +257,7 @@ class ReportService
             )
             ->groupBy('students.id', 'students.name', 'students.nis', 'active_class.class_name')
             ->get()
-            ->map(function ($row) use ($countField, $lastDateField) {
+            ->map(function ($row) use ($countField, $lastDateField, $startDate, $endDate, $flagColumn) {
                 return [
                     'type' => 'student',
                     'id' => (int) $row->id,
@@ -301,7 +301,7 @@ class ReportService
             )
             ->groupBy('employees.id', 'employees.name', 'employees.nip', 'employees.role_type', 'employees.department')
             ->get()
-            ->map(function ($row) use ($countField, $lastDateField) {
+            ->map(function ($row) use ($countField, $lastDateField, $startDate, $endDate, $flagColumn) {
                 return [
                     'type' => 'employee',
                     'id' => (int) $row->id,
