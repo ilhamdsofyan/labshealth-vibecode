@@ -6,6 +6,12 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 
+use App\Models\Visit;
+use App\Models\Medication;
+use App\Models\Disease;
+use App\Models\Student;
+use App\Models\Employee;
+
 class ReportService
 {
     /**
@@ -132,7 +138,17 @@ class ReportService
             ->groupBy('medications.id', 'medications.name', 'medications.category')
             ->orderByDesc('usage_count')
             ->limit(10)
-            ->get();
+            ->get()
+            ->map(function ($row) use ($startDate, $endDate) {
+                return [
+                    'id' => (int) $row->id,
+                    'name' => $row->name,
+                    'category' => $row->category,
+                    'usage_count' => (int) $row->usage_count,
+                    'visit_count' => (int) $row->visit_count,
+                    'drilldown' => $this->buildMedicationDrilldown((int) $row->id, $startDate, $endDate),
+                ];
+            });
 
         $topDiseases = DB::table('disease_visit')
             ->join('visits', 'visits.id', '=', 'disease_visit.visit_id')
@@ -148,7 +164,35 @@ class ReportService
             ->groupBy('diseases.id', 'diseases.name', 'diseases.category')
             ->orderByDesc('case_count')
             ->limit(10)
-            ->get();
+            ->get()
+            ->map(function ($row) use ($startDate, $endDate) {
+                return [
+                    'id' => (int) $row->id,
+                    'name' => $row->name,
+                    'category' => $row->category,
+                    'case_count' => (int) $row->case_count,
+                    'visit_count' => (int) $row->visit_count,
+                    'drilldown' => $this->buildDiseaseDrilldown((int) $row->id, $startDate, $endDate),
+                ];
+            });
+
+        $frequentVisitors = $this->mergeVisitorAggregates(
+            $this->aggregateStudentVisitors($startDate, $endDate),
+            $this->aggregateEmployeeVisitors($startDate, $endDate),
+            'visit_count'
+        );
+
+        $restVisitors = $this->mergeVisitorAggregates(
+            $this->aggregateStudentVisitors($startDate, $endDate, 'is_rest'),
+            $this->aggregateEmployeeVisitors($startDate, $endDate, 'is_rest'),
+            'rest_count'
+        );
+
+        $accPulangVisitors = $this->mergeVisitorAggregates(
+            $this->aggregateStudentVisitors($startDate, $endDate, 'is_acc_pulang'),
+            $this->aggregateEmployeeVisitors($startDate, $endDate, 'is_acc_pulang'),
+            'acc_pulang_count'
+        );
 
         return [
             'period' => [
@@ -156,23 +200,19 @@ class ReportService
                 'end_date' => $endDate,
             ],
             'summary' => $summary,
+            'summary_drilldowns' => [
+                'visits_total' => $this->buildVisitListDrilldown($startDate, $endDate),
+                'rest_total' => $this->buildVisitListDrilldown($startDate, $endDate, 'is_rest'),
+                'acc_pulang_total' => $this->buildVisitListDrilldown($startDate, $endDate, 'is_acc_pulang'),
+                'students_total' => $this->buildStudentDrilldown($startDate, $endDate),
+                'employees_total' => $this->buildEmployeeDrilldown($startDate, $endDate),
+                'medication_administrations_total' => $this->buildMedicationAdministrationDrilldown($startDate, $endDate),
+            ],
             'top_medications' => $topMedications,
             'top_diseases' => $topDiseases,
-            'frequent_visitors' => $this->mergeVisitorAggregates(
-                $this->aggregateStudentVisitors($startDate, $endDate),
-                $this->aggregateEmployeeVisitors($startDate, $endDate),
-                'visit_count'
-            ),
-            'rest_visitors' => $this->mergeVisitorAggregates(
-                $this->aggregateStudentVisitors($startDate, $endDate, 'is_rest'),
-                $this->aggregateEmployeeVisitors($startDate, $endDate, 'is_rest'),
-                'rest_count'
-            ),
-            'acc_pulang_visitors' => $this->mergeVisitorAggregates(
-                $this->aggregateStudentVisitors($startDate, $endDate, 'is_acc_pulang'),
-                $this->aggregateEmployeeVisitors($startDate, $endDate, 'is_acc_pulang'),
-                'acc_pulang_count'
-            ),
+            'frequent_visitors' => $frequentVisitors,
+            'rest_visitors' => $restVisitors,
+            'acc_pulang_visitors' => $accPulangVisitors,
         ];
     }
 
@@ -220,6 +260,7 @@ class ReportService
             ->map(function ($row) use ($countField, $lastDateField) {
                 return [
                     'type' => 'student',
+                    'id' => (int) $row->id,
                     'name' => $row->name,
                     'identifier' => $row->nis,
                     'meta' => collect([
@@ -229,6 +270,7 @@ class ReportService
                     $countField => (int) $row->aggregate_count,
                     $lastDateField => $row->last_visit_date,
                     'history_url' => route('visitors.students.history', $row->id),
+                    'drilldown' => $this->buildPersonVisitDrilldown('student', (int) $row->id, $startDate, $endDate, $flagColumn),
                 ];
             });
     }
@@ -262,6 +304,7 @@ class ReportService
             ->map(function ($row) use ($countField, $lastDateField) {
                 return [
                     'type' => 'employee',
+                    'id' => (int) $row->id,
                     'name' => $row->name,
                     'identifier' => $row->nip,
                     'meta' => collect([
@@ -272,6 +315,7 @@ class ReportService
                     $countField => (int) $row->aggregate_count,
                     $lastDateField => $row->last_visit_date,
                     'history_url' => route('visitors.employees.history', $row->id),
+                    'drilldown' => $this->buildPersonVisitDrilldown('employee', (int) $row->id, $startDate, $endDate, $flagColumn),
                 ];
             });
     }
@@ -301,5 +345,224 @@ class ReportService
             'is_acc_pulang' => 'last_acc_pulang_at',
             default => 'last_visit_at',
         };
+    }
+
+    private function buildVisitListDrilldown(Carbon $startDate, Carbon $endDate, ?string $flagColumn = null): array
+    {
+        $query = Visit::query()
+            ->with(['student.activeClass:id,student_id,class_name,is_active', 'employee:id,name,nip,role_type,department'])
+            ->whereBetween('visit_date', [$startDate, $endDate])
+            ->orderByDesc('visit_date')
+            ->orderByDesc('visit_time');
+
+        if ($flagColumn) {
+            $query->where($flagColumn, true);
+        }
+
+        return [
+            'type' => 'visits',
+            'items' => $query->limit(100)->get()->map(fn (Visit $visit) => $this->formatVisitDrilldownItem($visit))->all(),
+        ];
+    }
+
+    private function buildStudentDrilldown(Carbon $startDate, Carbon $endDate): array
+    {
+        $items = DB::table('visits')
+            ->join('students', 'students.id', '=', 'visits.student_id')
+            ->leftJoin('student_class_histories as active_class', function ($join) {
+                $join->on('active_class.student_id', '=', 'students.id')->where('active_class.is_active', true);
+            })
+            ->whereBetween('visits.visit_date', [$startDate, $endDate])
+            ->whereNotNull('visits.student_id')
+            ->select(
+                'students.id',
+                'students.name',
+                'students.nis',
+                'active_class.class_name',
+                DB::raw('COUNT(*) as visit_count'),
+                DB::raw('MAX(visits.visit_date) as last_visit_date')
+            )
+            ->groupBy('students.id', 'students.name', 'students.nis', 'active_class.class_name')
+            ->orderByDesc('visit_count')
+            ->limit(100)
+            ->get()
+            ->map(fn ($row) => [
+                'title' => $row->name,
+                'meta' => collect([
+                    $row->nis ? 'NIS ' . $row->nis : null,
+                    $row->class_name,
+                ])->filter()->implode(' | '),
+                'count' => (int) $row->visit_count,
+                'date' => $row->last_visit_date,
+                'link' => route('visitors.students.history', $row->id),
+                'link_label' => 'Riwayat',
+            ])
+            ->all();
+
+        return ['type' => 'entities', 'items' => $items];
+    }
+
+    private function buildEmployeeDrilldown(Carbon $startDate, Carbon $endDate): array
+    {
+        $items = DB::table('visits')
+            ->join('employees', 'employees.id', '=', 'visits.employee_id')
+            ->whereBetween('visits.visit_date', [$startDate, $endDate])
+            ->whereNotNull('visits.employee_id')
+            ->select(
+                'employees.id',
+                'employees.name',
+                'employees.nip',
+                'employees.role_type',
+                'employees.department',
+                DB::raw('COUNT(*) as visit_count'),
+                DB::raw('MAX(visits.visit_date) as last_visit_date')
+            )
+            ->groupBy('employees.id', 'employees.name', 'employees.nip', 'employees.role_type', 'employees.department')
+            ->orderByDesc('visit_count')
+            ->limit(100)
+            ->get()
+            ->map(fn ($row) => [
+                'title' => $row->name,
+                'meta' => collect([
+                    $row->nip ? 'NIP ' . $row->nip : null,
+                    $row->role_type,
+                    $row->department,
+                ])->filter()->implode(' | '),
+                'count' => (int) $row->visit_count,
+                'date' => $row->last_visit_date,
+                'link' => route('visitors.employees.history', $row->id),
+                'link_label' => 'Riwayat',
+            ])
+            ->all();
+
+        return ['type' => 'entities', 'items' => $items];
+    }
+
+    private function buildMedicationAdministrationDrilldown(Carbon $startDate, Carbon $endDate): array
+    {
+        $items = DB::table('medication_visit')
+            ->join('visits', 'visits.id', '=', 'medication_visit.visit_id')
+            ->join('medications', 'medications.id', '=', 'medication_visit.medication_id')
+            ->whereBetween('visits.visit_date', [$startDate, $endDate])
+            ->select(
+                'medications.name as medication_name',
+                'visits.id as visit_id',
+                'visits.visit_date',
+                'visits.visit_time',
+                'visits.patient_name',
+                'visits.patient_category'
+            )
+            ->orderByDesc('visits.visit_date')
+            ->orderByDesc('visits.visit_time')
+            ->limit(150)
+            ->get()
+            ->map(fn ($row) => [
+                'title' => $row->medication_name,
+                'meta' => collect([
+                    $row->patient_name,
+                    $row->patient_category,
+                ])->filter()->implode(' | '),
+                'date' => $row->visit_date,
+                'link' => route('visits.show', $row->visit_id),
+                'link_label' => 'Detail',
+            ])
+            ->all();
+
+        return ['type' => 'simple', 'items' => $items];
+    }
+
+    private function buildMedicationDrilldown(int $medicationId, Carbon $startDate, Carbon $endDate): array
+    {
+        $items = Visit::query()
+            ->with(['student.activeClass:id,student_id,class_name,is_active', 'employee:id,name,nip,role_type,department'])
+            ->whereBetween('visit_date', [$startDate, $endDate])
+            ->whereHas('medications', fn ($query) => $query->where('medications.id', $medicationId))
+            ->orderByDesc('visit_date')
+            ->orderByDesc('visit_time')
+            ->limit(50)
+            ->get()
+            ->map(fn (Visit $visit) => $this->formatVisitDrilldownItem($visit))
+            ->all();
+
+        return ['type' => 'visits', 'items' => $items];
+    }
+
+    private function buildDiseaseDrilldown(int $diseaseId, Carbon $startDate, Carbon $endDate): array
+    {
+        $items = Visit::query()
+            ->with(['student.activeClass:id,student_id,class_name,is_active', 'employee:id,name,nip,role_type,department'])
+            ->whereBetween('visit_date', [$startDate, $endDate])
+            ->whereHas('diseases', fn ($query) => $query->where('diseases.id', $diseaseId))
+            ->orderByDesc('visit_date')
+            ->orderByDesc('visit_time')
+            ->limit(50)
+            ->get()
+            ->map(fn (Visit $visit) => $this->formatVisitDrilldownItem($visit))
+            ->all();
+
+        return ['type' => 'visits', 'items' => $items];
+    }
+
+    private function buildPersonVisitDrilldown(string $type, int $personId, Carbon $startDate, Carbon $endDate, ?string $flagColumn = null): array
+    {
+        $query = Visit::query()
+            ->with(['student.activeClass:id,student_id,class_name,is_active', 'employee:id,name,nip,role_type,department'])
+            ->whereBetween('visit_date', [$startDate, $endDate])
+            ->orderByDesc('visit_date')
+            ->orderByDesc('visit_time');
+
+        if ($type === 'student') {
+            $query->where('student_id', $personId);
+        } else {
+            $query->where('employee_id', $personId);
+        }
+
+        if ($flagColumn) {
+            $query->where($flagColumn, true);
+        }
+
+        return [
+            'type' => 'visits',
+            'items' => $query->limit(50)->get()->map(fn (Visit $visit) => $this->formatVisitDrilldownItem($visit))->all(),
+        ];
+    }
+
+    private function formatVisitDrilldownItem(Visit $visit): array
+    {
+        $historyUrl = null;
+        $identityMeta = null;
+
+        if ($visit->student_id && $visit->student) {
+            $historyUrl = route('visitors.students.history', $visit->student_id);
+            $identityMeta = collect([
+                'SMA',
+                $visit->student->nis ? 'NIS ' . $visit->student->nis : null,
+                $visit->student->activeClass?->class_name ?? $visit->class_or_department,
+            ])->filter()->implode(' | ');
+        } elseif ($visit->employee_id && $visit->employee) {
+            $historyUrl = route('visitors.employees.history', $visit->employee_id);
+            $identityMeta = collect([
+                $visit->patient_category,
+                $visit->employee->nip ? 'NIP ' . $visit->employee->nip : null,
+                $visit->employee->department ?: $visit->class_or_department,
+            ])->filter()->implode(' | ');
+        } else {
+            $identityMeta = collect([
+                $visit->patient_category,
+                $visit->class_or_department,
+            ])->filter()->implode(' | ');
+        }
+
+        return [
+            'title' => $visit->patient_name,
+            'meta' => $identityMeta,
+            'subtitle' => $visit->complaint,
+            'date' => optional($visit->visit_date)?->format('Y-m-d'),
+            'time' => $visit->visit_time,
+            'link' => route('visits.show', $visit),
+            'link_label' => 'Detail',
+            'secondary_link' => $historyUrl,
+            'secondary_link_label' => $historyUrl ? 'Riwayat' : null,
+        ];
     }
 }

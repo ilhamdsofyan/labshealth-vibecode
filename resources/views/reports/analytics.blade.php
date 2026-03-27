@@ -4,6 +4,7 @@
 
 @php
     $summary = $report['summary'];
+    $summaryDrilldowns = $report['summary_drilldowns'];
 @endphp
 
 @section('content')
@@ -55,7 +56,9 @@
         <div class="card h-100">
             <div class="card-body">
                 <div class="small text-muted mb-1">Total Kunjungan</div>
-                <div class="fs-4 fw-bold">{{ $summary['visits_total'] }}</div>
+                <button type="button" class="btn btn-link p-0 fs-4 fw-bold text-decoration-none" data-bs-toggle="modal" data-bs-target="#summaryVisitsModal">
+                    {{ $summary['visits_total'] }}
+                </button>
             </div>
         </div>
     </div>
@@ -63,7 +66,9 @@
         <div class="card h-100">
             <div class="card-body">
                 <div class="small text-muted mb-1">Total Rest</div>
-                <div class="fs-4 fw-bold text-warning">{{ $summary['rest_total'] }}</div>
+                <button type="button" class="btn btn-link p-0 fs-4 fw-bold text-warning text-decoration-none" data-bs-toggle="modal" data-bs-target="#summaryRestModal">
+                    {{ $summary['rest_total'] }}
+                </button>
             </div>
         </div>
     </div>
@@ -71,7 +76,9 @@
         <div class="card h-100">
             <div class="card-body">
                 <div class="small text-muted mb-1">Acc Pulang</div>
-                <div class="fs-4 fw-bold text-danger">{{ $summary['acc_pulang_total'] }}</div>
+                <button type="button" class="btn btn-link p-0 fs-4 fw-bold text-danger text-decoration-none" data-bs-toggle="modal" data-bs-target="#summaryAccPulangModal">
+                    {{ $summary['acc_pulang_total'] }}
+                </button>
             </div>
         </div>
     </div>
@@ -79,7 +86,9 @@
         <div class="card h-100">
             <div class="card-body">
                 <div class="small text-muted mb-1">Siswa Terlibat</div>
-                <div class="fs-4 fw-bold text-primary">{{ $summary['students_total'] }}</div>
+                <button type="button" class="btn btn-link p-0 fs-4 fw-bold text-primary text-decoration-none" data-bs-toggle="modal" data-bs-target="#summaryStudentsModal">
+                    {{ $summary['students_total'] }}
+                </button>
             </div>
         </div>
     </div>
@@ -87,7 +96,9 @@
         <div class="card h-100">
             <div class="card-body">
                 <div class="small text-muted mb-1">Pegawai Terlibat</div>
-                <div class="fs-4 fw-bold text-info">{{ $summary['employees_total'] }}</div>
+                <button type="button" class="btn btn-link p-0 fs-4 fw-bold text-info text-decoration-none" data-bs-toggle="modal" data-bs-target="#summaryEmployeesModal">
+                    {{ $summary['employees_total'] }}
+                </button>
             </div>
         </div>
     </div>
@@ -95,7 +106,9 @@
         <div class="card h-100">
             <div class="card-body">
                 <div class="small text-muted mb-1">Pemberian Obat</div>
-                <div class="fs-4 fw-bold text-success">{{ $summary['medication_administrations_total'] }}</div>
+                <button type="button" class="btn btn-link p-0 fs-4 fw-bold text-success text-decoration-none" data-bs-toggle="modal" data-bs-target="#summaryMedicationAdministrationsModal">
+                    {{ $summary['medication_administrations_total'] }}
+                </button>
             </div>
         </div>
     </div>
@@ -122,10 +135,18 @@
                         <tbody>
                             @forelse($report['top_medications'] as $row)
                                 <tr>
-                                    <td class="fw-semibold">{{ $row->name }}</td>
-                                    <td>{{ $row->category ?: '-' }}</td>
-                                    <td class="text-center">{{ $row->usage_count }}</td>
-                                    <td class="text-center">{{ $row->visit_count }}</td>
+                                    <td class="fw-semibold">{{ $row['name'] }}</td>
+                                    <td>{{ $row['category'] ?: '-' }}</td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-link btn-sm p-0 fw-bold text-success text-decoration-none" data-bs-toggle="modal" data-bs-target="#medicationModal{{ $row['id'] }}">
+                                            {{ $row['usage_count'] }}
+                                        </button>
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-link btn-sm p-0 fw-bold text-decoration-none" data-bs-toggle="modal" data-bs-target="#medicationModal{{ $row['id'] }}">
+                                            {{ $row['visit_count'] }}
+                                        </button>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
@@ -159,10 +180,18 @@
                         <tbody>
                             @forelse($report['top_diseases'] as $row)
                                 <tr>
-                                    <td class="fw-semibold">{{ $row->name }}</td>
-                                    <td>{{ $row->category ?: '-' }}</td>
-                                    <td class="text-center">{{ $row->case_count }}</td>
-                                    <td class="text-center">{{ $row->visit_count }}</td>
+                                    <td class="fw-semibold">{{ $row['name'] }}</td>
+                                    <td>{{ $row['category'] ?: '-' }}</td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-link btn-sm p-0 fw-bold text-danger text-decoration-none" data-bs-toggle="modal" data-bs-target="#diseaseModal{{ $row['id'] }}">
+                                            {{ $row['case_count'] }}
+                                        </button>
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-link btn-sm p-0 fw-bold text-decoration-none" data-bs-toggle="modal" data-bs-target="#diseaseModal{{ $row['id'] }}">
+                                            {{ $row['visit_count'] }}
+                                        </button>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
@@ -200,7 +229,11 @@
                                             <a href="{{ $row['history_url'] }}" class="small">Lihat riwayat</a>
                                         @endif
                                     </td>
-                                    <td class="text-center fw-bold">{{ $row['visit_count'] }}</td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-link btn-sm p-0 fw-bold text-decoration-none" data-bs-toggle="modal" data-bs-target="#frequentVisitorModal{{ $row['type'] }}{{ $row['id'] }}">
+                                            {{ $row['visit_count'] }}
+                                        </button>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
@@ -238,7 +271,11 @@
                                             <a href="{{ $row['history_url'] }}" class="small">Lihat riwayat</a>
                                         @endif
                                     </td>
-                                    <td class="text-center fw-bold text-warning">{{ $row['rest_count'] }}</td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-link btn-sm p-0 fw-bold text-warning text-decoration-none" data-bs-toggle="modal" data-bs-target="#restVisitorModal{{ $row['type'] }}{{ $row['id'] }}">
+                                            {{ $row['rest_count'] }}
+                                        </button>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
@@ -276,7 +313,11 @@
                                             <a href="{{ $row['history_url'] }}" class="small">Lihat riwayat</a>
                                         @endif
                                     </td>
-                                    <td class="text-center fw-bold text-danger">{{ $row['acc_pulang_count'] }}</td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-link btn-sm p-0 fw-bold text-danger text-decoration-none" data-bs-toggle="modal" data-bs-target="#accPulangVisitorModal{{ $row['type'] }}{{ $row['id'] }}">
+                                            {{ $row['acc_pulang_count'] }}
+                                        </button>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
@@ -290,4 +331,91 @@
         </div>
     </div>
 </div>
+
+@include('reports.partials.drilldown-modal', [
+    'id' => 'summaryVisitsModal',
+    'title' => 'Detail Total Kunjungan',
+    'subtitle' => 'Daftar kunjungan pada periode terpilih.',
+    'items' => $summaryDrilldowns['visits_total']['items'] ?? [],
+])
+
+@include('reports.partials.drilldown-modal', [
+    'id' => 'summaryRestModal',
+    'title' => 'Detail Total Rest',
+    'subtitle' => 'Daftar kunjungan yang berstatus rest.',
+    'items' => $summaryDrilldowns['rest_total']['items'] ?? [],
+])
+
+@include('reports.partials.drilldown-modal', [
+    'id' => 'summaryAccPulangModal',
+    'title' => 'Detail Acc Pulang',
+    'subtitle' => 'Daftar kunjungan yang mendapat acc pulang.',
+    'items' => $summaryDrilldowns['acc_pulang_total']['items'] ?? [],
+])
+
+@include('reports.partials.drilldown-modal', [
+    'id' => 'summaryStudentsModal',
+    'title' => 'Daftar Siswa Terlibat',
+    'subtitle' => 'Siswa unik yang tercatat pada periode terpilih.',
+    'items' => $summaryDrilldowns['students_total']['items'] ?? [],
+])
+
+@include('reports.partials.drilldown-modal', [
+    'id' => 'summaryEmployeesModal',
+    'title' => 'Daftar Pegawai Terlibat',
+    'subtitle' => 'Pegawai unik yang tercatat pada periode terpilih.',
+    'items' => $summaryDrilldowns['employees_total']['items'] ?? [],
+])
+
+@include('reports.partials.drilldown-modal', [
+    'id' => 'summaryMedicationAdministrationsModal',
+    'title' => 'Detail Pemberian Obat',
+    'subtitle' => 'Daftar pemberian obat pada periode terpilih.',
+    'items' => $summaryDrilldowns['medication_administrations_total']['items'] ?? [],
+])
+
+@foreach($report['top_medications'] as $row)
+    @include('reports.partials.drilldown-modal', [
+        'id' => 'medicationModal' . $row['id'],
+        'title' => 'Pemakaian Obat: ' . $row['name'],
+        'subtitle' => 'Daftar kunjungan yang menggunakan obat ini.',
+        'items' => $row['drilldown']['items'] ?? [],
+    ])
+@endforeach
+
+@foreach($report['top_diseases'] as $row)
+    @include('reports.partials.drilldown-modal', [
+        'id' => 'diseaseModal' . $row['id'],
+        'title' => 'Kasus Penyakit: ' . $row['name'],
+        'subtitle' => 'Daftar kunjungan yang terkait dengan penyakit ini.',
+        'items' => $row['drilldown']['items'] ?? [],
+    ])
+@endforeach
+
+@foreach($report['frequent_visitors'] as $row)
+    @include('reports.partials.drilldown-modal', [
+        'id' => 'frequentVisitorModal' . $row['type'] . $row['id'],
+        'title' => 'Riwayat Kunjungan: ' . $row['name'],
+        'subtitle' => 'Detail kunjungan berulang pada periode terpilih.',
+        'items' => $row['drilldown']['items'] ?? [],
+    ])
+@endforeach
+
+@foreach($report['rest_visitors'] as $row)
+    @include('reports.partials.drilldown-modal', [
+        'id' => 'restVisitorModal' . $row['type'] . $row['id'],
+        'title' => 'Riwayat Rest: ' . $row['name'],
+        'subtitle' => 'Detail kunjungan rest pada periode terpilih.',
+        'items' => $row['drilldown']['items'] ?? [],
+    ])
+@endforeach
+
+@foreach($report['acc_pulang_visitors'] as $row)
+    @include('reports.partials.drilldown-modal', [
+        'id' => 'accPulangVisitorModal' . $row['type'] . $row['id'],
+        'title' => 'Riwayat Acc Pulang: ' . $row['name'],
+        'subtitle' => 'Detail kunjungan acc pulang pada periode terpilih.',
+        'items' => $row['drilldown']['items'] ?? [],
+    ])
+@endforeach
 @endsection
