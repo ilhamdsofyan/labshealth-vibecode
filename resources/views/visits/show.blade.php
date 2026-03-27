@@ -9,7 +9,7 @@
     </a>
     <div>
         <h4 class="fw-bold mb-0">Detail Kunjungan</h4>
-        <p class="text-muted mb-0 small">{{ $visit->visit_date->format('d F Y') }} — {{ $visit->visit_time }}</p>
+        <p class="text-muted mb-0 small">{{ $visit->visit_date->format('d F Y') }} - {{ $visit->visit_time }}</p>
     </div>
     <div class="ms-auto d-flex gap-2">
         <a href="{{ route('visits.edit', $visit) }}" class="btn btn-outline-warning btn-sm">
@@ -21,7 +21,6 @@
 <div class="card border-0 shadow-sm overflow-hidden">
     <div class="card-body p-0">
         <div class="row g-0">
-            {{-- Patient Side --}}
             <div class="col-lg-4 border-end bg-light bg-opacity-50 p-4">
                 <div class="text-center mb-4">
                     <div class="avatar-circle mx-auto mb-2 bg-primary text-white d-flex align-items-center justify-content-center" style="width:64px; height:64px; border-radius: 50%; font-size: 24px; font-weight: bold;">
@@ -63,7 +62,6 @@
                 </div>
             </div>
 
-            {{-- Visit Detail Side --}}
             <div class="col-lg-8 p-4">
                 <div class="row g-4 mb-4">
                     <div class="col-6">
@@ -150,9 +148,12 @@
                             <div class="col-md-4 col-6">
                                 <div class="p-3 bg-light rounded border h-100">
                                     <div class="small text-muted mb-1">Temperature</div>
-                                    <div class="fw-bold">{{ $visit->temperature_c !== null ? rtrim(rtrim(number_format((float) $visit->temperature_c, 2, '.', ''), '0'), '.') . ' °C' : '-' }}</div>
+                                    <div class="fw-bold">{{ $visit->temperature_c !== null ? rtrim(rtrim(number_format((float) $visit->temperature_c, 2, '.', ''), '0'), '.') . ' �C' : '-' }}</div>
                                 </div>
                             </div>
+                        </div>
+                        <div class="small text-muted mt-2">
+                            Tanda vital: tekanan darah, heart rate, RR, dan temperature.
                         </div>
                     </div>
                 @endif
