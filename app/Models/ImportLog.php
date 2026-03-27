@@ -14,7 +14,6 @@ class ImportLog extends Model
         'failed_rows',
         'failed_rows_data',
         'uploaded_by',
-        'status',
     ];
 
     protected $casts = [

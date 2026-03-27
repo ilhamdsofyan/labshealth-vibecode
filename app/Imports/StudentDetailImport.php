@@ -76,7 +76,6 @@ class StudentDetailImport implements ToCollection, WithHeadingRow
             'total_rows' => count($rows),
             'success_rows' => $this->successCount,
             'failed_rows' => count($this->failedRows),
-            'status' => 'completed',
         ]);
     }
 
