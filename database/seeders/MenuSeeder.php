@@ -68,6 +68,15 @@ class MenuSeeder extends Seeder
             'order' => 1,
         ]);
 
+        Menu::firstOrCreate(['route_name' => 'reports.analytics'], [
+            'parent_id' => $laporan->id,
+            'name' => 'Analitik',
+            'route_name' => 'reports.analytics',
+            'icon' => 'bi-graph-up-arrow',
+            'permission_name' => 'reports.analytics',
+            'order' => 2,
+        ]);
+
         // ─── Admin (parent) ─────────────────────────────────
         $admin = Menu::firstOrCreate(['name' => 'Admin', 'parent_id' => null], [
             'name' => 'Admin',
