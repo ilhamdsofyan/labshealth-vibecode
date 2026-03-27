@@ -168,9 +168,9 @@
                             <i class="bi bi-printer text-primary"></i>
                             <span>Laporan</span>
                         </a>
-                        <a href="{{ route('reports.monthly') }}" class="quick-item text-decoration-none">
-                            <i class="bi bi-clock-history text-warning"></i>
-                            <span>Riwayat</span>
+                        <a href="{{ route('reports.analytics') }}" class="quick-item text-decoration-none">
+                            <i class="bi bi-graph-up-arrow text-warning"></i>
+                            <span>Analitik</span>
                         </a>
                     </div>
                 </div>

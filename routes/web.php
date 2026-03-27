@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ClinicAgendaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\VisitorHistoryController;
 use App\Http\Controllers\VisitController;
 use App\Http\Controllers\Admin\DiseaseController;
 use App\Http\Controllers\Admin\EmployeeController;
@@ -43,10 +44,14 @@ Route::middleware(['auth', 'permission'])->group(function () {
     Route::resource('visits', VisitController::class);
     Route::patch('visits/{visit}/toggle-rest', [VisitController::class, 'toggleRest'])->name('visits.toggle-rest');
     Route::patch('visits/{visit}/toggle-pulang', [VisitController::class, 'togglePulang'])->name('visits.toggle-pulang');
+    Route::get('riwayat-kunjungan/siswa/{student}', [VisitorHistoryController::class, 'student'])->name('visitors.students.history');
+    Route::get('riwayat-kunjungan/pegawai/{employee}', [VisitorHistoryController::class, 'employee'])->name('visitors.employees.history');
+    Route::get('riwayat-kunjungan/search', [VisitorHistoryController::class, 'search'])->name('visitors.search');
 
     // Reports
     Route::get('reports/monthly', [ReportController::class, 'monthly'])->name('reports.monthly');
     Route::get('reports/acc-pulang', [ReportController::class, 'accPulang'])->name('reports.acc-pulang');
+    Route::get('reports/analytics', [ReportController::class, 'analytics'])->name('reports.analytics');
     Route::get('reports/export-excel', [ReportController::class, 'exportExcel'])->name('reports.export-excel');
     Route::get('reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
 

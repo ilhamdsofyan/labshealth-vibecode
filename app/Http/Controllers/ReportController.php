@@ -54,6 +54,20 @@ class ReportController extends Controller
         ]);
     }
 
+    public function analytics(Request $request): View
+    {
+        $dateFrom = $request->input('date_from', now()->startOfMonth()->format('Y-m-d'));
+        $dateTo = $request->input('date_to', now()->endOfMonth()->format('Y-m-d'));
+
+        $report = $this->reportService->getAnalyticsReport($dateFrom, $dateTo);
+
+        return view('reports.analytics', [
+            'report' => $report,
+            'dateFrom' => $report['period']['start_date']->format('Y-m-d'),
+            'dateTo' => $report['period']['end_date']->format('Y-m-d'),
+        ]);
+    }
+
     public function exportExcel(Request $request): BinaryFileResponse
     {
         $month = $request->input('month', now()->month);

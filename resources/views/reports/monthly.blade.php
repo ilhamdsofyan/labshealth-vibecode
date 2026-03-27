@@ -23,6 +23,20 @@
     </div>
 </div>
 
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a href="{{ route('reports.monthly', ['month' => $month, 'year' => $year]) }}"
+       class="btn btn-sm {{ $reportType === 'kunjungan' ? 'btn-primary' : 'btn-outline-primary' }}">
+        Rekap Kunjungan
+    </a>
+    <a href="{{ route('reports.acc-pulang', ['month' => $month, 'year' => $year]) }}"
+       class="btn btn-sm {{ $reportType === 'acc_pulang' ? 'btn-primary' : 'btn-outline-primary' }}">
+        Rekap Acc Pulang
+    </a>
+    <a href="{{ route('reports.analytics') }}" class="btn btn-sm btn-outline-primary">
+        Analitik
+    </a>
+</div>
+
 <!-- Filter -->
 <div class="card mb-3 no-print">
     <div class="card-body">
