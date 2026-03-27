@@ -40,11 +40,12 @@
                     <label class="form-label small fw-semibold">Permissions</label>
                     <div class="border rounded p-3" style="max-height:400px;overflow-y:auto;">
                         @foreach($groupedPermissions as $group => $permissions)
-                            <div class="mb-3">
+                            @php($groupKey = $group !== null && $group !== '' ? \Illuminate\Support\Str::slug($group, '-') : 'lainnya')
+                            <div class="mb-3" data-permission-group-wrap>
                                 <div class="d-flex align-items-center mb-2">
                                     <strong class="small text-uppercase text-primary">{{ $group ?: 'Lainnya' }}</strong>
                                     <button type="button" class="btn btn-link btn-sm p-0 ms-2 text-decoration-none check-all-btn"
-                                            data-group="{{ $group }}">
+                                            data-group-key="{{ $groupKey }}">
                                         <small>Pilih semua</small>
                                     </button>
                                 </div>
@@ -53,7 +54,8 @@
                                         <div class="col-md-4 col-6">
                                             <div class="form-check">
                                                 <input type="checkbox" name="permissions[]" value="{{ $permission->id }}"
-                                                       class="form-check-input perm-{{ $group }}"
+                                                       class="form-check-input"
+                                                       data-permission-group="{{ $groupKey }}"
                                                        id="perm_{{ $permission->id }}"
                                                        {{ in_array($permission->id, old('permissions', $rolePermissions ?? [])) ? 'checked' : '' }}>
                                                 <label class="form-check-label small" for="perm_{{ $permission->id }}">
@@ -82,10 +84,18 @@
 <script>
 document.querySelectorAll('.check-all-btn').forEach(btn => {
     btn.addEventListener('click', function() {
-        const group = this.dataset.group;
-        const checkboxes = document.querySelectorAll('.perm-' + CSS.escape(group));
+        const groupKey = this.dataset.groupKey;
+        const groupWrap = this.closest('[data-permission-group-wrap]');
+        if (!groupWrap) return;
+
+        const checkboxes = groupWrap.querySelectorAll('[data-permission-group="' + groupKey + '"]');
+        if (!checkboxes.length) return;
+
         const allChecked = [...checkboxes].every(cb => cb.checked);
-        checkboxes.forEach(cb => cb.checked = !allChecked);
+
+        setTimeout(() => {
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+        }, 100);
     });
 });
 </script>
