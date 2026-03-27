@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\VisitRequest;
 use App\Models\Bed;
+use App\Models\Disease;
+use App\Models\Medication;
 use App\Models\Visit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class VisitController extends Controller
@@ -80,9 +83,9 @@ class VisitController extends Controller
     public function store(VisitRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $diseaseIds = array_values(array_unique(array_map('intval', $data['disease_ids'] ?? [])));
-        $medicationIds = array_values(array_unique(array_map('intval', $data['medication_ids'] ?? [])));
-        unset($data['disease_ids'], $data['medication_ids']);
+        $diseaseIds = $this->resolveDiseaseIds($data['disease_names'] ?? []);
+        $medicationIds = $this->resolveMedicationIds($data['medication_names'] ?? []);
+        unset($data['disease_names'], $data['medication_names']);
 
         $data['disease_id'] = $diseaseIds[0] ?? null;
         $data['medication_id'] = $medicationIds[0] ?? null;
@@ -141,9 +144,9 @@ class VisitController extends Controller
     public function update(VisitRequest $request, Visit $visit): RedirectResponse
     {
         $data = $request->validated();
-        $diseaseIds = array_values(array_unique(array_map('intval', $data['disease_ids'] ?? [])));
-        $medicationIds = array_values(array_unique(array_map('intval', $data['medication_ids'] ?? [])));
-        unset($data['disease_ids'], $data['medication_ids']);
+        $diseaseIds = $this->resolveDiseaseIds($data['disease_names'] ?? []);
+        $medicationIds = $this->resolveMedicationIds($data['medication_names'] ?? []);
+        unset($data['disease_names'], $data['medication_names']);
 
         $data['disease_id'] = $diseaseIds[0] ?? null;
         $data['medication_id'] = $medicationIds[0] ?? null;
@@ -294,5 +297,42 @@ class VisitController extends Controller
         }
 
         return redirect()->route('visits.index')->with('success', $message);
+    }
+
+    private function resolveDiseaseIds(array $names): array
+    {
+        return $this->resolveMasterIds($names, Disease::class);
+    }
+
+    private function resolveMedicationIds(array $names): array
+    {
+        return $this->resolveMasterIds($names, Medication::class);
+    }
+
+    private function resolveMasterIds(array $names, string $modelClass): array
+    {
+        return $this->normalizeTagValues($names)
+            ->map(function (string $name) use ($modelClass) {
+                $record = $modelClass::query()
+                    ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+                    ->first();
+
+                if (! $record) {
+                    $record = $modelClass::create(['name' => $name]);
+                }
+
+                return (int) $record->id;
+            })
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function normalizeTagValues(array $values): Collection
+    {
+        return collect($values)
+            ->map(fn ($value) => trim((string) $value))
+            ->filter(fn ($value) => $value !== '')
+            ->values();
     }
 }

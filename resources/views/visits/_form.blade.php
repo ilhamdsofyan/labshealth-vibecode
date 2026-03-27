@@ -166,31 +166,35 @@
     </div>
 
     @php
-        $oldDiseaseIds = collect(old('disease_ids', isset($visit) ? $visit->diseases->pluck('id')->all() : []))
+        $oldDiseaseNames = collect(old('disease_names', isset($visit) ? $visit->diseases->pluck('name')->all() : []))
+            ->map(fn ($name) => trim((string) $name))
             ->filter()
-            ->map(fn ($id) => (int) $id)
             ->values();
-        $oldMedicationIds = collect(old('medication_ids', isset($visit) ? $visit->medications->pluck('id')->all() : []))
+        $oldMedicationNames = collect(old('medication_names', isset($visit) ? $visit->medications->pluck('name')->all() : []))
+            ->map(fn ($name) => trim((string) $name))
             ->filter()
-            ->map(fn ($id) => (int) $id)
             ->values();
-        $selectedDiseases = $oldDiseaseIds->isNotEmpty()
-            ? \App\Models\Disease::query()->whereIn('id', $oldDiseaseIds)->get()
-            : collect();
-        $selectedMedications = $oldMedicationIds->isNotEmpty()
-            ? \App\Models\Medication::query()->whereIn('id', $oldMedicationIds)->get()
-            : collect();
+        $diseaseSuggestions = \App\Models\Disease::query()->orderBy('name')->pluck('name')->all();
+        $medicationSuggestions = \App\Models\Medication::query()->orderBy('name')->pluck('name')->all();
     @endphp
 
     <div class="col-md-8">
         <label class="form-label small fw-semibold">Diagnosa / Penyakit <span class="text-danger">*</span></label>
-        <select name="disease_ids[]" id="disease_id" class="form-select select2-ajax" data-url="{{ route('admin.master.diseases.search') }}" multiple required>
-            @foreach($selectedDiseases as $selectedDisease)
-                <option value="{{ $selectedDisease->id }}" selected>{{ $selectedDisease->name }}</option>
-            @endforeach
-        </select>
-        @error('disease_ids') <div class="invalid-feedback text-danger small d-block">{{ $message }}</div> @enderror
-        @error('disease_ids.*') <div class="invalid-feedback text-danger small d-block">{{ $message }}</div> @enderror
+        <div class="tag-suggestion-field" data-name="disease_names" data-required="true" data-suggestions='@json($diseaseSuggestions)'>
+            <div class="form-control tag-input-shell @error('disease_names') is-invalid @enderror">
+                <div class="tag-input-selected"></div>
+                <input type="text" class="tag-input-control" placeholder="Ketik lalu Enter. Saran akan muncul dari master data.">
+            </div>
+            <div class="tag-suggestion-dropdown d-none"></div>
+            <div class="tag-hidden-inputs">
+                @foreach($oldDiseaseNames as $name)
+                    <input type="hidden" name="disease_names[]" value="{{ $name }}">
+                @endforeach
+            </div>
+        </div>
+        <div class="form-text">Boleh pilih dari saran atau ketik penyakit baru. Tekan Enter untuk menambahkan.</div>
+        @error('disease_names') <div class="invalid-feedback text-danger small d-block">{{ $message }}</div> @enderror
+        @error('disease_names.*') <div class="invalid-feedback text-danger small d-block">{{ $message }}</div> @enderror
     </div>
 
     <div class="col-md-4 d-flex align-items-end mb-1">
@@ -202,13 +206,21 @@
 
     <div class="col-md-8">
         <label class="form-label small fw-semibold">Obat</label>
-        <select name="medication_ids[]" id="medication_id" class="form-select select2-ajax" data-url="{{ route('admin.master.medications.search') }}" multiple>
-            @foreach($selectedMedications as $selectedMedication)
-                <option value="{{ $selectedMedication->id }}" selected>{{ $selectedMedication->name }}</option>
-            @endforeach
-        </select>
-        @error('medication_ids') <div class="invalid-feedback text-danger small d-block">{{ $message }}</div> @enderror
-        @error('medication_ids.*') <div class="invalid-feedback text-danger small d-block">{{ $message }}</div> @enderror
+        <div class="tag-suggestion-field" data-name="medication_names" data-suggestions='@json($medicationSuggestions)'>
+            <div class="form-control tag-input-shell @error('medication_names') is-invalid @enderror">
+                <div class="tag-input-selected"></div>
+                <input type="text" class="tag-input-control" placeholder="Ketik lalu Enter. Bisa isi obat baru jika belum ada.">
+            </div>
+            <div class="tag-suggestion-dropdown d-none"></div>
+            <div class="tag-hidden-inputs">
+                @foreach($oldMedicationNames as $name)
+                    <input type="hidden" name="medication_names[]" value="{{ $name }}">
+                @endforeach
+            </div>
+        </div>
+        <div class="form-text">Boleh kosong. Obat baru akan otomatis ditambahkan ke master.</div>
+        @error('medication_names') <div class="invalid-feedback text-danger small d-block">{{ $message }}</div> @enderror
+        @error('medication_names.*') <div class="invalid-feedback text-danger small d-block">{{ $message }}</div> @enderror
     </div>
 
     <div class="col-12 {{ old('is_acc_pulang', $visit->is_acc_pulang ?? false) ? '' : 'd-none' }}" id="reasonWrapper">
@@ -329,7 +341,212 @@
         // Handle disabled gender select before form submit
         $('form').on('submit', function() {
             $('#genderSelect').prop('disabled', false);
+
+            $('.tag-suggestion-field').each(function () {
+                const $field = $(this);
+                const $input = $field.find('.tag-input-control');
+                const inputName = $field.data('name');
+                const value = ($input.val() || '').trim().replace(/\s+/g, ' ');
+
+                if (!value) {
+                    return;
+                }
+
+                const exists = $field.find('.tag-hidden-inputs input').filter(function () {
+                    return (($(this).val() || '').trim().replace(/\s+/g, ' ')).toLowerCase() === value.toLowerCase();
+                }).length > 0;
+
+                if (!exists) {
+                    $('<input>', {
+                        type: 'hidden',
+                        name: inputName + '[]',
+                        value: value
+                    }).appendTo($field.find('.tag-hidden-inputs'));
+                }
+            });
+        });
+
+        function normalizeTagValue(value) {
+            return (value || '').trim().replace(/\s+/g, ' ');
+        }
+
+        function initializeTagSuggestionField($field) {
+            const suggestions = ($field.data('suggestions') || []).map(normalizeTagValue).filter(Boolean);
+            const inputName = $field.data('name');
+            const required = Boolean($field.data('required'));
+            const $selected = $field.find('.tag-input-selected');
+            const $input = $field.find('.tag-input-control');
+            const $dropdown = $field.find('.tag-suggestion-dropdown');
+            const $hidden = $field.find('.tag-hidden-inputs');
+
+            function getValues() {
+                return $hidden.find('input').map(function () {
+                    return normalizeTagValue($(this).val());
+                }).get().filter(Boolean);
+            }
+
+            function syncTags() {
+                const values = getValues();
+                $selected.empty();
+
+                values.forEach(function (value) {
+                    const $tag = $('<span class="badge rounded-pill text-bg-light border d-inline-flex align-items-center gap-2 px-3 py-2 me-2 mb-2"></span>');
+                    $tag.append($('<span></span>').text(value));
+                    const $remove = $('<button type="button" class="btn btn-sm p-0 border-0 bg-transparent text-danger lh-1">&times;</button>');
+                    $remove.on('click', function () {
+                        $hidden.find('input').filter(function () {
+                            return normalizeTagValue($(this).val()).toLowerCase() === value.toLowerCase();
+                        }).first().remove();
+                        syncTags();
+                    });
+                    $tag.append($remove);
+                    $selected.append($tag);
+                });
+
+                if (required) {
+                    $field.toggleClass('tag-field-empty', values.length === 0);
+                }
+            }
+
+            function addValue(rawValue) {
+                const value = normalizeTagValue(rawValue);
+                if (!value) {
+                    return;
+                }
+
+                const exists = getValues().some(function (item) {
+                    return item.toLowerCase() === value.toLowerCase();
+                });
+
+                if (exists) {
+                    $input.val('');
+                    renderSuggestions();
+                    return;
+                }
+
+                $('<input>', {
+                    type: 'hidden',
+                    name: inputName + '[]',
+                    value: value
+                }).appendTo($hidden);
+
+                $input.val('');
+                renderSuggestions();
+                syncTags();
+            }
+
+            function renderSuggestions() {
+                const keyword = normalizeTagValue($input.val()).toLowerCase();
+                const selectedValues = getValues().map(function (item) {
+                    return item.toLowerCase();
+                });
+
+                const filtered = suggestions.filter(function (item) {
+                    const lowered = item.toLowerCase();
+                    if (selectedValues.includes(lowered)) {
+                        return false;
+                    }
+
+                    return keyword === '' || lowered.includes(keyword);
+                }).slice(0, 8);
+
+                $dropdown.empty();
+
+                if (!filtered.length || keyword === '') {
+                    $dropdown.addClass('d-none');
+                    return;
+                }
+
+                filtered.forEach(function (item) {
+                    const $button = $('<button type="button" class="dropdown-item small py-2"></button>').text(item);
+                    $button.on('click', function () {
+                        addValue(item);
+                        $dropdown.addClass('d-none');
+                        $input.trigger('focus');
+                    });
+                    $dropdown.append($button);
+                });
+
+                $dropdown.removeClass('d-none');
+            }
+
+            $input.on('keydown', function (event) {
+                if (event.key === 'Enter' || event.key === ',') {
+                    event.preventDefault();
+                    addValue($input.val());
+                    return;
+                }
+
+                if (event.key === 'Backspace' && normalizeTagValue($input.val()) === '') {
+                    const values = getValues();
+                    if (values.length > 0) {
+                        const lastValue = values[values.length - 1];
+                        $hidden.find('input').filter(function () {
+                            return normalizeTagValue($(this).val()).toLowerCase() === lastValue.toLowerCase();
+                        }).last().remove();
+                        syncTags();
+                    }
+                }
+            });
+
+            $input.on('input focus', renderSuggestions);
+            $input.on('blur', function () {
+                setTimeout(function () {
+                    $dropdown.addClass('d-none');
+                }, 150);
+            });
+
+            syncTags();
+        }
+
+        $('.tag-suggestion-field').each(function () {
+            initializeTagSuggestionField($(this));
         });
     });
 </script>
+@endpush
+
+@push('styles')
+<style>
+    .tag-input-shell {
+        min-height: 48px;
+        display: flex;
+        align-items: flex-start;
+        gap: 4px;
+        flex-wrap: wrap;
+        position: relative;
+    }
+
+    .tag-input-selected {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .tag-input-control {
+        border: 0;
+        outline: none;
+        flex: 1 1 180px;
+        min-width: 180px;
+        padding: 6px 0;
+        background: transparent;
+    }
+
+    .tag-suggestion-field {
+        position: relative;
+    }
+
+    .tag-suggestion-dropdown {
+        position: absolute;
+        inset-inline: 0;
+        top: calc(100% + 4px);
+        z-index: 20;
+        background: #fff;
+        border: 1px solid var(--bs-border-color);
+        border-radius: .75rem;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, .08);
+        overflow: hidden;
+    }
+</style>
 @endpush
