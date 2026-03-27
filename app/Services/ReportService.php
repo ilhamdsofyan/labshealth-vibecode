@@ -3,9 +3,6 @@
 namespace App\Services;
 
 use Carbon\Carbon;
-use App\Models\Employee;
-use App\Models\Student;
-use App\Models\Visit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 
@@ -21,43 +18,59 @@ class ReportService
      */
     public function getMonthlyReport(int $month, int $year, string $type = 'kunjungan'): array
     {
-        $query = Visit::whereMonth('visit_date', $month)
-            ->whereYear('visit_date', $year)
-            ->with('diseases');
-
-        if ($type === 'acc_pulang') {
-            $query->where('is_acc_pulang', true);
-        }
-
-        $visits = $query->get();
-
         $seed = ['SMA' => 0, 'GURU' => 0, 'KARYAWAN' => 0, 'UMUM' => 0];
         $groupedMap = [];
+        $applyAccFilter = fn ($query) => $type === 'acc_pulang'
+            ? $query->where('visits.is_acc_pulang', true)
+            : $query;
 
-        foreach ($visits as $visit) {
-            $assignedDiseases = $visit->diseases;
-            if ($assignedDiseases->isEmpty()) {
-                $assignedDiseases = collect([(object) ['id' => 0, 'name' => 'Tidak Terdiagnosa']]);
+        $diseaseRows = $applyAccFilter(
+            DB::table('disease_visit')
+                ->join('visits', 'visits.id', '=', 'disease_visit.visit_id')
+                ->join('diseases', 'diseases.id', '=', 'disease_visit.disease_id')
+                ->whereMonth('visits.visit_date', $month)
+                ->whereYear('visits.visit_date', $year)
+                ->select(
+                    'diseases.id as disease_id',
+                    'diseases.name as disease_name',
+                    'visits.patient_category',
+                    DB::raw('COUNT(*) as aggregate_count')
+                )
+                ->groupBy('diseases.id', 'diseases.name', 'visits.patient_category')
+        )->get();
+
+        $undiagnosedRows = $applyAccFilter(
+            DB::table('visits')
+                ->leftJoin('disease_visit', 'disease_visit.visit_id', '=', 'visits.id')
+                ->whereNull('disease_visit.id')
+                ->whereMonth('visits.visit_date', $month)
+                ->whereYear('visits.visit_date', $year)
+                ->select(
+                    DB::raw('0 as disease_id'),
+                    DB::raw("'Tidak Terdiagnosa' as disease_name"),
+                    'visits.patient_category',
+                    DB::raw('COUNT(*) as aggregate_count')
+                )
+                ->groupBy('visits.patient_category')
+        )->get();
+
+        foreach ($diseaseRows->concat($undiagnosedRows) as $row) {
+            $key = (string) $row->disease_id;
+            if (!isset($groupedMap[$key])) {
+                $groupedMap[$key] = [
+                    'disease_name' => $row->disease_name,
+                    'SMA' => $seed['SMA'],
+                    'GURU' => $seed['GURU'],
+                    'KARYAWAN' => $seed['KARYAWAN'],
+                    'UMUM' => $seed['UMUM'],
+                    'total' => 0,
+                    'notes' => '',
+                ];
             }
 
-            foreach ($assignedDiseases as $disease) {
-                $key = (string) $disease->id;
-                if (!isset($groupedMap[$key])) {
-                    $groupedMap[$key] = [
-                        'disease_name' => $disease->name,
-                        'SMA' => $seed['SMA'],
-                        'GURU' => $seed['GURU'],
-                        'KARYAWAN' => $seed['KARYAWAN'],
-                        'UMUM' => $seed['UMUM'],
-                        'total' => 0,
-                        'notes' => '',
-                    ];
-                }
-
-                if (isset($groupedMap[$key][$visit->patient_category])) {
-                    $groupedMap[$key][$visit->patient_category]++;
-                    $groupedMap[$key]['total']++;
-                }
+            if (isset($groupedMap[$key][$row->patient_category])) {
+                $groupedMap[$key][$row->patient_category] += (int) $row->aggregate_count;
+                $groupedMap[$key]['total'] += (int) $row->aggregate_count;
             }
         }
 
@@ -145,9 +158,21 @@ class ReportService
             'summary' => $summary,
             'top_medications' => $topMedications,
             'top_diseases' => $topDiseases,
-            'frequent_visitors' => $this->aggregateVisitors($visits)->take(10),
-            'rest_visitors' => $this->aggregateVisitors($visits->where('is_rest', true), 'rest_count', 'last_rest_at')->take(10),
-            'acc_pulang_visitors' => $this->aggregateVisitors($visits->where('is_acc_pulang', true), 'acc_pulang_count', 'last_acc_pulang_at')->take(10),
+            'frequent_visitors' => $this->mergeVisitorAggregates(
+                $this->aggregateStudentVisitors($startDate, $endDate),
+                $this->aggregateEmployeeVisitors($startDate, $endDate),
+                'visit_count'
+            ),
+            'rest_visitors' => $this->mergeVisitorAggregates(
+                $this->aggregateStudentVisitors($startDate, $endDate, 'is_rest'),
+                $this->aggregateEmployeeVisitors($startDate, $endDate, 'is_rest'),
+                'rest_count'
+            ),
+            'acc_pulang_visitors' => $this->mergeVisitorAggregates(
+                $this->aggregateStudentVisitors($startDate, $endDate, 'is_acc_pulang'),
+                $this->aggregateEmployeeVisitors($startDate, $endDate, 'is_acc_pulang'),
+                'acc_pulang_count'
+            ),
         ];
     }
 
@@ -163,62 +188,118 @@ class ReportService
         return [$startDate, $endDate];
     }
 
-    private function aggregateVisitors(Collection $visits, string $countField = 'visit_count', string $lastDateField = 'last_visit_at'): Collection
+    private function aggregateStudentVisitors(Carbon $startDate, Carbon $endDate, ?string $flagColumn = null): Collection
     {
-        return $visits
-            ->filter(function (Visit $visit) {
-                return $visit->student_id || $visit->employee_id;
+        $query = DB::table('visits')
+            ->join('students', 'students.id', '=', 'visits.student_id')
+            ->leftJoin('student_class_histories as active_class', function ($join) {
+                $join->on('active_class.student_id', '=', 'students.id')
+                    ->where('active_class.is_active', true);
             })
-            ->groupBy(function (Visit $visit) {
-                if ($visit->student_id) {
-                    return 'student:' . $visit->student_id;
-                }
+            ->whereBetween('visits.visit_date', [$startDate, $endDate])
+            ->whereNotNull('visits.student_id');
 
-                return 'employee:' . $visit->employee_id;
-            })
-            ->map(function (Collection $group, string $key) use ($countField, $lastDateField) {
-                /** @var Visit $first */
-                $first = $group->first();
-                $latestVisit = $group->sortByDesc(fn (Visit $visit) => ($visit->visit_date?->format('Y-m-d') ?? '') . ' ' . ($visit->visit_time ?? ''))->first();
+        if ($flagColumn) {
+            $query->where("visits.{$flagColumn}", true);
+        }
 
-                if (str_starts_with($key, 'student:')) {
-                    /** @var Student|null $student */
-                    $student = $first->student;
-                    $meta = collect([
-                        $student?->nis ? 'NIS ' . $student->nis : null,
-                        $student?->activeClass?->class_name,
-                    ])->filter()->implode(' | ');
+        $countField = $this->resolveCountField($flagColumn);
+        $lastDateField = $this->resolveLastDateField($flagColumn);
 
-                    return [
-                        'type' => 'student',
-                        'name' => $student?->name ?? $first->patient_name,
-                        'identifier' => $student?->nis,
-                        'meta' => $meta,
-                        $countField => $group->count(),
-                        $lastDateField => $latestVisit?->visit_date,
-                        'history_url' => $student ? route('visitors.students.history', $student) : null,
-                    ];
-                }
+        return $query
+            ->select(
+                'students.id',
+                'students.name',
+                'students.nis',
+                'active_class.class_name',
+                DB::raw('COUNT(*) as aggregate_count'),
+                DB::raw('MAX(visits.visit_date) as last_visit_date')
+            )
+            ->groupBy('students.id', 'students.name', 'students.nis', 'active_class.class_name')
+            ->get()
+            ->map(function ($row) use ($countField, $lastDateField) {
+                return [
+                    'type' => 'student',
+                    'name' => $row->name,
+                    'identifier' => $row->nis,
+                    'meta' => collect([
+                        $row->nis ? 'NIS ' . $row->nis : null,
+                        $row->class_name,
+                    ])->filter()->implode(' | '),
+                    $countField => (int) $row->aggregate_count,
+                    $lastDateField => $row->last_visit_date,
+                    'history_url' => route('visitors.students.history', $row->id),
+                ];
+            });
+    }
 
-                /** @var Employee|null $employee */
-                $employee = $first->employee;
-                $meta = collect([
-                    $employee?->nip ? 'NIP ' . $employee->nip : null,
-                    $employee?->role_type,
-                    $employee?->department,
-                ])->filter()->implode(' | ');
+    private function aggregateEmployeeVisitors(Carbon $startDate, Carbon $endDate, ?string $flagColumn = null): Collection
+    {
+        $query = DB::table('visits')
+            ->join('employees', 'employees.id', '=', 'visits.employee_id')
+            ->whereBetween('visits.visit_date', [$startDate, $endDate])
+            ->whereNotNull('visits.employee_id');
 
+        if ($flagColumn) {
+            $query->where("visits.{$flagColumn}", true);
+        }
+
+        $countField = $this->resolveCountField($flagColumn);
+        $lastDateField = $this->resolveLastDateField($flagColumn);
+
+        return $query
+            ->select(
+                'employees.id',
+                'employees.name',
+                'employees.nip',
+                'employees.role_type',
+                'employees.department',
+                DB::raw('COUNT(*) as aggregate_count'),
+                DB::raw('MAX(visits.visit_date) as last_visit_date')
+            )
+            ->groupBy('employees.id', 'employees.name', 'employees.nip', 'employees.role_type', 'employees.department')
+            ->get()
+            ->map(function ($row) use ($countField, $lastDateField) {
                 return [
                     'type' => 'employee',
-                    'name' => $employee?->name ?? $first->patient_name,
-                    'identifier' => $employee?->nip,
-                    'meta' => $meta,
-                    $countField => $group->count(),
-                    $lastDateField => $latestVisit?->visit_date,
-                    'history_url' => $employee ? route('visitors.employees.history', $employee) : null,
+                    'name' => $row->name,
+                    'identifier' => $row->nip,
+                    'meta' => collect([
+                        $row->nip ? 'NIP ' . $row->nip : null,
+                        $row->role_type,
+                        $row->department,
+                    ])->filter()->implode(' | '),
+                    $countField => (int) $row->aggregate_count,
+                    $lastDateField => $row->last_visit_date,
+                    'history_url' => route('visitors.employees.history', $row->id),
                 ];
-            })
+            });
+    }
+
+    private function mergeVisitorAggregates(Collection $students, Collection $employees, string $countField): Collection
+    {
+        return $students
+            ->concat($employees)
             ->sortByDesc($countField)
-            ->values();
+            ->values()
+            ->take(10);
+    }
+
+    private function resolveCountField(?string $flagColumn): string
+    {
+        return match ($flagColumn) {
+            'is_rest' => 'rest_count',
+            'is_acc_pulang' => 'acc_pulang_count',
+            default => 'visit_count',
+        };
+    }
+
+    private function resolveLastDateField(?string $flagColumn): string
+    {
+        return match ($flagColumn) {
+            'is_rest' => 'last_rest_at',
+            'is_acc_pulang' => 'last_acc_pulang_at',
+            default => 'last_visit_at',
+        };
     }
 }

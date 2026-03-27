@@ -13,9 +13,9 @@ class MenuService
      */
     public function getMenusForUser(User $user): Collection
     {
-        $userPermissions = $user->getAllPermissions();
-        $userRoleIds = $user->roles->pluck('id')->toArray();
         $isSuperAdmin = $user->isSuperAdmin();
+        $userPermissions = $isSuperAdmin ? collect() : $user->getAllPermissions();
+        $userRoleIds = $isSuperAdmin ? [] : $user->roles->pluck('id')->toArray();
 
         $menus = Menu::active()
             ->roots()

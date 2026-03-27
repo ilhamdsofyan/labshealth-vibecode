@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 
 class User extends Authenticatable
 {
@@ -51,11 +52,19 @@ class User extends Authenticatable
 
     public function isSuperAdmin(): bool
     {
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->contains(fn ($role) => $role->name === 'superadmin');
+        }
+
         return $this->roles()->where('name', 'superadmin')->exists();
     }
 
     public function hasRole(string $roleName): bool
     {
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->contains(fn ($role) => $role->name === $roleName);
+        }
+
         return $this->roles()->where('name', $roleName)->exists();
     }
 
@@ -65,6 +74,10 @@ class User extends Authenticatable
             return true;
         }
 
+        if ($this->relationLoaded('roles')) {
+            return $this->getAllPermissions()->contains($permissionName);
+        }
+
         return $this->roles()
             ->whereHas('permissions', function ($query) use ($permissionName) {
                 $query->where('name', $permissionName);
@@ -72,10 +85,20 @@ class User extends Authenticatable
             ->exists();
     }
 
-    public function getAllPermissions(): \Illuminate\Support\Collection
+    public function getAllPermissions(): Collection
     {
         if ($this->isSuperAdmin()) {
             return Permission::all()->pluck('name');
+        }
+
+        if ($this->relationLoaded('roles')) {
+            return $this->roles
+                ->loadMissing('permissions')
+                ->pluck('permissions')
+                ->flatten()
+                ->pluck('name')
+                ->unique()
+                ->values();
         }
 
         return $this->roles()

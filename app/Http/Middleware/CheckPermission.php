@@ -16,6 +16,8 @@ class CheckPermission
             return redirect()->route('login');
         }
 
+        $user->loadMissing('roles.permissions');
+
         if (!$user->is_active) {
             auth()->logout();
             return redirect()->route('login')

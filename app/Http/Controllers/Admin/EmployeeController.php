@@ -16,8 +16,12 @@ class EmployeeController extends Controller
     public function search(Request $request)
     {
         $q = $request->get('q');
-        $employees = Employee::where('name', 'like', "%{$q}%")
-            ->orWhere('nip', 'like', "%{$q}%")
+        $employees = Employee::query()
+            ->select(['id', 'nip', 'name', 'role_type', 'department', 'avatar_path'])
+            ->where(function ($builder) use ($q) {
+                $builder->where('name', 'like', "%{$q}%")
+                    ->orWhere('nip', 'like', "%{$q}%");
+            })
             ->limit(10)
             ->get();
 
@@ -65,7 +69,8 @@ class EmployeeController extends Controller
 
     public function index(Request $request): View
     {
-        $query = Employee::query();
+        $query = Employee::query()
+            ->select(['id', 'nip', 'name', 'role_type', 'department', 'avatar_path', 'created_at']);
         $departmentSuggestions = Employee::query()
             ->whereNotNull('department')
             ->where('department', '!=', '')
@@ -105,10 +110,10 @@ class EmployeeController extends Controller
     public function store(Request $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
-            'nip' => ['required', 'string', 'unique:employees,nip'],
+            'nip' => ['required', 'string', 'max:30', 'unique:employees,nip'],
             'name' => ['required', 'string', 'max:255'],
             'role_type' => ['required', 'in:GURU,KARYAWAN,TENDIK,PETUGAS'],
-            'department' => ['nullable', 'string', 'max:255'],
+            'department' => ['nullable', 'string', 'max:120'],
             'height_cm' => ['nullable', 'integer', 'min:0', 'max:300'],
             'weight_kg' => ['nullable', 'numeric', 'min:0', 'max:999.99'],
             'blood_type' => ['nullable', 'in:A,B,AB,O'],
@@ -155,10 +160,10 @@ class EmployeeController extends Controller
     public function update(Request $request, Employee $employee): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
-            'nip' => ['required', 'string', 'unique:employees,nip,' . $employee->id],
+            'nip' => ['required', 'string', 'max:30', 'unique:employees,nip,' . $employee->id],
             'name' => ['required', 'string', 'max:255'],
             'role_type' => ['required', 'in:GURU,KARYAWAN,TENDIK,PETUGAS'],
-            'department' => ['nullable', 'string', 'max:255'],
+            'department' => ['nullable', 'string', 'max:120'],
             'height_cm' => ['nullable', 'integer', 'min:0', 'max:300'],
             'weight_kg' => ['nullable', 'numeric', 'min:0', 'max:999.99'],
             'blood_type' => ['nullable', 'in:A,B,AB,O'],

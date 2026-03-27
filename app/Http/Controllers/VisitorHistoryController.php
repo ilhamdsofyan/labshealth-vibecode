@@ -14,12 +14,31 @@ class VisitorHistoryController extends Controller
     public function student(Student $student): View
     {
         $student->load([
-            'activeClass',
-            'health',
-            'medicalHistory',
+            'activeClass:id,student_id,class_name,academic_year',
+            'health:id,student_id,height_cm,weight_kg,head_circumference_cm,blood_type,rhesus,eye_condition,has_eye_disorder,assistive_device,ear_condition,uses_hearing_aid',
+            'medicalHistory:id,student_id,past_diseases,ever_hospitalized,has_recurring_disease,surgery_history,relapse_treatment,drug_food_allergies',
         ]);
 
-        $visits = Visit::with(['diseases', 'medications', 'creator', 'bed'])
+        $visits = Visit::query()
+            ->select([
+                'id',
+                'visit_date',
+                'visit_time',
+                'patient_name',
+                'complaint',
+                'officer_name',
+                'is_acc_pulang',
+                'is_rest',
+                'created_by',
+                'height_cm',
+                'weight_kg',
+                'blood_pressure',
+                'heart_rate',
+                'respiratory_rate',
+                'temperature_c',
+                'student_id',
+            ])
+            ->with(['diseases:id,name', 'creator:id,name'])
             ->where('student_id', $student->id)
             ->orderByDesc('visit_date')
             ->orderByDesc('visit_time')
@@ -83,9 +102,28 @@ class VisitorHistoryController extends Controller
 
     public function employee(Employee $employee): View
     {
-        $employee->load('medicalRecord');
+        $employee->load('medicalRecord:id,employee_id,height_cm,weight_kg,blood_type,rhesus,allergies,chronic_diseases,past_surgeries,regular_medications,last_checkup_date,medical_notes');
 
-        $visits = Visit::with(['diseases', 'medications', 'creator', 'bed'])
+        $visits = Visit::query()
+            ->select([
+                'id',
+                'visit_date',
+                'visit_time',
+                'patient_name',
+                'complaint',
+                'officer_name',
+                'is_acc_pulang',
+                'is_rest',
+                'created_by',
+                'height_cm',
+                'weight_kg',
+                'blood_pressure',
+                'heart_rate',
+                'respiratory_rate',
+                'temperature_c',
+                'employee_id',
+            ])
+            ->with(['diseases:id,name', 'creator:id,name'])
             ->where('employee_id', $employee->id)
             ->orderByDesc('visit_date')
             ->orderByDesc('visit_time')
@@ -142,9 +180,12 @@ class VisitorHistoryController extends Controller
         }
 
         $students = Student::query()
-            ->with('activeClass')
-            ->where('name', 'like', '%' . $query . '%')
-            ->orWhere('nis', 'like', '%' . $query . '%')
+            ->select(['id', 'nis', 'name'])
+            ->with('activeClass:id,student_id,class_name')
+            ->where(function ($builder) use ($query) {
+                $builder->where('name', 'like', '%' . $query . '%')
+                    ->orWhere('nis', 'like', '%' . $query . '%');
+            })
             ->orderBy('name')
             ->limit(6)
             ->get()
@@ -161,8 +202,11 @@ class VisitorHistoryController extends Controller
             });
 
         $employees = Employee::query()
-            ->where('name', 'like', '%' . $query . '%')
-            ->orWhere('nip', 'like', '%' . $query . '%')
+            ->select(['id', 'nip', 'name', 'role_type', 'department'])
+            ->where(function ($builder) use ($query) {
+                $builder->where('name', 'like', '%' . $query . '%')
+                    ->orWhere('nip', 'like', '%' . $query . '%');
+            })
             ->orderBy('name')
             ->limit(6)
             ->get()

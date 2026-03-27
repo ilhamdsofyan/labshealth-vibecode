@@ -30,7 +30,7 @@ class VisitRequest extends FormRequest
             'external_patient_name' => ['required_if:patient_category,UMUM', 'nullable', 'string', 'max:255'],
             'additional_info' => ['required_if:patient_category,UMUM', 'nullable', 'string'],
             
-            'class_or_department' => ['nullable', 'string', 'max:255'],
+            'class_or_department' => ['nullable', 'string', 'max:120'],
             'height_cm' => ['nullable', 'numeric', 'min:0', 'max:300'],
             'weight_kg' => ['nullable', 'numeric', 'min:0', 'max:500'],
             'blood_pressure' => ['nullable', 'string', 'max:20'],
@@ -39,7 +39,7 @@ class VisitRequest extends FormRequest
             'temperature_c' => ['nullable', 'numeric', 'min:30', 'max:45'],
             'complaint' => ['required', 'string'],
             'therapy' => ['nullable', 'string'],
-            'officer_name' => ['required', 'string', 'max:255'],
+            'officer_name' => ['required', 'string', 'max:120'],
             'notes' => ['nullable', 'string'],
             'is_acc_pulang' => ['nullable', 'boolean'],
             'acc_pulang_reason' => ['required_if:is_acc_pulang,1', 'nullable', 'string'],

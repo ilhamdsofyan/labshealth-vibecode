@@ -14,7 +14,27 @@ class VisitController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Visit::with(['creator', 'disease', 'medication', 'diseases', 'medications', 'student', 'employee', 'bed']);
+        $query = Visit::query()
+            ->select([
+                'id',
+                'visit_date',
+                'visit_time',
+                'patient_name',
+                'patient_category',
+                'class_or_department',
+                'class_at_visit',
+                'complaint',
+                'student_id',
+                'employee_id',
+                'officer_name',
+                'is_acc_pulang',
+                'is_rest',
+            ])
+            ->with([
+                'diseases:id,name',
+                'student:id,nis',
+                'employee:id,nip',
+            ]);
 
         // Search
         if ($search = $request->input('search')) {
@@ -97,13 +117,24 @@ class VisitController extends Controller
 
     public function show(Visit $visit): View
     {
-        $visit->load(['creator', 'disease', 'medication', 'diseases', 'medications', 'student', 'employee']);
+        $visit->load([
+            'creator:id,name',
+            'diseases:id,name',
+            'medications:id,name',
+            'student:id,nis',
+            'employee:id,nip',
+        ]);
         return view('visits.show', compact('visit'));
     }
 
     public function edit(Visit $visit): View
     {
-        $visit->load(['disease', 'medication', 'diseases', 'medications', 'student', 'employee']);
+        $visit->load([
+            'diseases:id,name',
+            'medications:id,name',
+            'student:id,nis,name',
+            'employee:id,nip,name',
+        ]);
         return view('visits.edit', compact('visit'));
     }
 

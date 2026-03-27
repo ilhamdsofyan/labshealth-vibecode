@@ -236,7 +236,7 @@
                                         data-blood-pressure="{{ $visit->blood_pressure ?: '-' }}"
                                         data-heart-rate="{{ $visit->heart_rate !== null ? $visit->heart_rate . ' bpm' : '-' }}"
                                         data-respiratory-rate="{{ $visit->respiratory_rate !== null ? $visit->respiratory_rate . ' x/menit' : '-' }}"
-                                        data-temperature="{{ $visit->temperature_c !== null ? rtrim(rtrim(number_format((float) $visit->temperature_c, 2, '.', ''), '0'), '.') . ' °C' : '-' }}"
+                                        data-temperature="{{ $visit->temperature_c !== null ? rtrim(rtrim(number_format((float) $visit->temperature_c, 2, '.', ''), '0'), '.') . ' ï¿½C' : '-' }}"
                                         {{ $hasStandardExam ? '' : 'disabled' }}
                                         title="{{ $hasStandardExam ? 'Lihat pemeriksaan standar' : 'Belum ada data pemeriksaan standar' }}"
                                     >
@@ -347,3 +347,4 @@
     });
 </script>
 @endpush
+

@@ -18,10 +18,14 @@ class StudentController extends Controller
     public function search(Request $request)
     {
         $q = $request->get('q');
-        $students = Student::where('name', 'like', "%{$q}%")
-            ->orWhere('nis', 'like', "%{$q}%")
+        $students = Student::query()
+            ->select(['id', 'nis', 'name', 'gender', 'avatar_path'])
+            ->where(function ($builder) use ($q) {
+                $builder->where('name', 'like', "%{$q}%")
+                    ->orWhere('nis', 'like', "%{$q}%");
+            })
             ->orderBy('created_at', 'desc')
-            ->with(['activeClass'])
+            ->with(['activeClass:id,student_id,class_name'])
             ->limit(10)
             ->get();
 
@@ -38,9 +42,12 @@ class StudentController extends Controller
 
     public function index(Request $request): View
     {
-        $query = Student::with(['activeClass' => function($q) {
-            $q->orderBy('class_name');
-        }]);
+        $query = Student::query()
+            ->select(['id', 'nis', 'name', 'nickname', 'gender', 'avatar_path'])
+            ->with(['activeClass' => function($q) {
+                $q->select(['id', 'student_id', 'class_name', 'academic_year'])
+                    ->orderBy('class_name');
+            }]);
 
         $classSuggestions = StudentClassHistory::query()
             ->whereNotNull('class_name')
@@ -97,7 +104,7 @@ class StudentController extends Controller
     public function store(Request $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
-            'nis' => ['required', 'string', 'unique:students,nis'],
+            'nis' => ['required', 'string', 'max:30', 'unique:students,nis'],
             'name' => ['required', 'string', 'max:255'],
             'gender' => ['required', 'in:L,P'],
             'class_name' => ['required', 'string', 'max:100'],
@@ -141,7 +148,7 @@ class StudentController extends Controller
     public function update(Request $request, Student $student): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
-            'nis' => ['required', 'string', 'unique:students,nis,' . $student->id],
+            'nis' => ['required', 'string', 'max:30', 'unique:students,nis,' . $student->id],
             'name' => ['required', 'string', 'max:255'],
             'gender' => ['required', 'in:L,P'],
             'class_name' => ['required', 'string', 'max:100'],
