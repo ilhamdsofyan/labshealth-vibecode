@@ -12,10 +12,23 @@ use Maatwebsite\Excel\HeadingRowImport;
 
 class ImportController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $logs = ImportLog::with('uploader')->latest()->paginate(10);
-        return view('admin.import.index', compact('logs'));
+        $selectedLogId = $request->integer('log');
+
+        $selectedLog = $selectedLogId
+            ? ImportLog::with('uploader')->find($selectedLogId)
+            : $logs->getCollection()->firstWhere('failed_rows', '>', 0);
+
+        $failedRows = session('failedRows');
+        if (! is_array($failedRows)) {
+            $failedRows = $selectedLog?->failed_rows_data ?? [];
+        }
+
+        $failedRows = $this->normalizeFailedRows($failedRows);
+
+        return view('admin.import.index', compact('logs', 'selectedLog', 'failedRows'));
     }
 
     public function import(Request $request)
@@ -67,13 +80,15 @@ class ImportController extends Controller
 
         Excel::import($importer, $file);
 
-        $message = "Import " . ucfirst($type) . " selesai. Berhasil: {$importer->successCount}, Gagal: " . count($importer->failedRows);
-        
-        if (count($importer->failedRows) > 0) {
-            return redirect()->back()->with('success', $message)->with('failedRows', $importer->failedRows);
-        }
+        $log->update([
+            'failed_rows_data' => $this->trimFailedRowsForStorage($importer->failedRows),
+        ]);
 
-        return redirect()->back()->with('success', $message);
+        $message = "Import " . ucfirst($type) . " selesai. Berhasil: {$importer->successCount}, Gagal: " . count($importer->failedRows);
+
+        return redirect()
+            ->route('admin.import.index', ['log' => $log->id])
+            ->with('success', $message);
     }
 
     private function detectImportTypeMismatch(string $type, string $filePath): ?string
@@ -129,6 +144,44 @@ class ImportController extends Controller
         }
 
         return false;
+    }
+
+    private function trimFailedRowsForStorage(array $failedRows): array
+    {
+        return array_map(function (array $failedRow) {
+            return [
+                'row' => $failedRow['row'] ?? null,
+                'errors' => array_values(array_filter(
+                    is_array($failedRow['errors'] ?? null)
+                        ? $failedRow['errors']
+                        : [($failedRow['reason'] ?? null)],
+                    fn ($error) => filled($error)
+                )),
+                'data' => is_array($failedRow['data'] ?? null) ? $failedRow['data'] : [],
+            ];
+        }, $failedRows);
+    }
+
+    private function normalizeFailedRows(array $failedRows): array
+    {
+        return array_values(array_filter(array_map(function ($failedRow) {
+            if (! is_array($failedRow)) {
+                return null;
+            }
+
+            $errors = $failedRow['errors'] ?? null;
+            if (! is_array($errors)) {
+                $errors = filled($failedRow['reason'] ?? null)
+                    ? [$failedRow['reason']]
+                    : [];
+            }
+
+            return [
+                'row' => $failedRow['row'] ?? '-',
+                'errors' => array_values(array_filter($errors, fn ($error) => filled($error))),
+                'data' => is_array($failedRow['data'] ?? null) ? $failedRow['data'] : [],
+            ];
+        }, $failedRows)));
     }
 
     public function downloadTemplate(Request $request)

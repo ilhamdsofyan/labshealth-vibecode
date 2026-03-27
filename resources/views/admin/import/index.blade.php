@@ -72,6 +72,7 @@
                                 <th class="text-center">Berhasil</th>
                                 <th class="text-center">Gagal</th>
                                 <th>Oleh</th>
+                                <th class="text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -82,10 +83,19 @@
                                     <td class="text-center text-success"><span class="badge bg-success bg-opacity-10 text-success">{{ $log->success_rows }}</span></td>
                                     <td class="text-center text-danger"><span class="badge bg-danger bg-opacity-10 text-danger">{{ $log->failed_rows }}</span></td>
                                     <td class="small">{{ $log->uploader->name }}</td>
+                                    <td class="text-center">
+                                        @if($log->failed_rows > 0)
+                                            <a href="{{ route('admin.import.index', ['log' => $log->id]) }}" class="btn btn-sm {{ optional($selectedLog)->id === $log->id ? 'btn-danger' : 'btn-outline-danger' }}">
+                                                <i class="bi bi-list-ul"></i>
+                                            </a>
+                                        @else
+                                            <span class="text-muted small">-</span>
+                                        @endif
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center py-4 text-muted small">Belum ada riwayat import</td>
+                                    <td colspan="6" class="text-center py-4 text-muted small">Belum ada riwayat import</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -99,9 +109,15 @@
     </div>
 </div>
 
-@if(session('failedRows'))
-<div class="card mt-4 border-danger">
-    <div class="card-header bg-danger text-white"><i class="bi bi-exclamation-triangle me-2"></i>Baris Gagal Detail</div>
+<div class="card mt-4 {{ count($failedRows ?? []) ? 'border-danger' : '' }}">
+    <div class="card-header {{ count($failedRows ?? []) ? 'bg-danger text-white' : 'bg-white' }}">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Detail Baris Gagal
+        @if(!empty($selectedLog))
+            <span class="small {{ count($failedRows ?? []) ? 'text-white-50' : 'text-muted' }}">- {{ $selectedLog->file_name }}</span>
+        @endif
+    </div>
+    @if(count($failedRows ?? []))
     <div class="card-body p-0">
         <div class="table-responsive" style="max-height: 300px;">
             <table class="table table-sm table-striped mb-0 small">
@@ -113,18 +129,18 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach(session('failedRows') as $failed)
+                    @foreach($failedRows as $failed)
                         <tr>
                             <td class="text-center">{{ $failed['row'] }}</td>
                             <td class="text-danger">
-                                @if(is_array($failed['errors']))
+                                @if(!empty($failed['errors']) && is_array($failed['errors']))
                                     <ul class="mb-0 ps-3">@foreach($failed['errors'] as $err)<li>{{ $err }}</li>@endforeach</ul>
                                 @else
                                     {{ $failed['reason'] ?? 'Unknown error' }}
                                 @endif
                             </td>
                             <td>
-                                <pre class="mb-0 x-small" style="font-size: 10px;">{{ json_encode($failed['data'], JSON_PRETTY_PRINT) }}</pre>
+                                <pre class="mb-0 x-small" style="font-size: 10px;">{{ json_encode($failed['data'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
                             </td>
                         </tr>
                     @endforeach
@@ -132,7 +148,15 @@
             </table>
         </div>
     </div>
+    @else
+    <div class="card-body text-muted small">
+        @if(!empty($selectedLog))
+            Log import ini tidak memiliki detail error yang tersimpan atau semua baris berhasil diproses.
+        @else
+            Pilih riwayat import yang gagal untuk melihat detail baris error.
+        @endif
+    </div>
+    @endif
 </div>
-@endif
 
 @endsection

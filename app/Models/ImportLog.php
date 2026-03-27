@@ -7,7 +7,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ImportLog extends Model
 {
-    protected $fillable = ['file_name', 'total_rows', 'success_rows', 'failed_rows', 'uploaded_by'];
+    protected $fillable = [
+        'file_name',
+        'total_rows',
+        'success_rows',
+        'failed_rows',
+        'failed_rows_data',
+        'uploaded_by',
+        'status',
+    ];
+
+    protected $casts = [
+        'failed_rows_data' => 'array',
+    ];
 
     public function uploader(): BelongsTo
     {
