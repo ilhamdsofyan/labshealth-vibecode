@@ -27,7 +27,7 @@ class SyncPermissions extends Command
             }
 
             // Skip vendor/internal routes
-            $skipPrefixes = ['sanctum.', 'ignition.', 'debugbar.', 'horizon.', 'telescope.'];
+            $skipPrefixes = ['sanctum.', 'ignition.', 'debugbar.', 'horizon.', 'telescope.', 'profile.', 'password.'];
             $shouldSkip = false;
             foreach ($skipPrefixes as $prefix) {
                 if (str_starts_with($name, $prefix)) {

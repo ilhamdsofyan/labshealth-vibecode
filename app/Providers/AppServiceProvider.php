@@ -21,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Share sidebar menus with all views that use the app layout
         View::composer('layouts.sidebar', MenuComposer::class);
-        View::composer('layouts.app', function ($view) {
+        View::composer(['layouts.app', 'layouts.guest'], function ($view) {
             $view->with('appUiSettings', app(SettingsService::class)->ui());
         });
     }

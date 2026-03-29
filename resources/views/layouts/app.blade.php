@@ -630,6 +630,12 @@
                     <li><span class="dropdown-item-text small text-muted">{{ auth()->user()->email }}</span></li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
+                        <a href="{{ route('profile.index') }}" class="dropdown-item">
+                            <i class="bi bi-person-circle me-2"></i>Profil Saya
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
                         <form action="{{ route('logout') }}" method="POST">
                             @csrf
                             <button type="submit" class="dropdown-item text-danger">

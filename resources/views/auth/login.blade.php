@@ -57,6 +57,10 @@
                 <label class="form-check-label small" for="remember">Ingat saya</label>
             </div>
 
+            <div class="text-end mb-3">
+                <a href="{{ route('password.request') }}" class="small text-decoration-none">Lupa password?</a>
+            </div>
+
             <button type="submit" class="btn btn-login btn-primary w-100 mb-3">
                 <i class="bi bi-box-arrow-in-right me-2"></i>Masuk
             </button>
