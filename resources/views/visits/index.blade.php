@@ -129,12 +129,18 @@
                                         @csrf
                                         @method('PATCH')
                                         <input type="hidden" name="is_rest" value="0">
+                                        <input type="hidden" name="rest_action" value="">
                                         <div class="form-check form-switch mb-0">
                                             <input class="form-check-input" type="checkbox" role="switch" name="is_rest" value="1"
                                                    {{ $visit->is_rest ? 'checked' : '' }}
                                                    {{ ($visit->is_acc_pulang || !$canToggleRestToday) ? 'disabled' : '' }}
                                                    title="{{ $canToggleRestToday ? 'Toggle Rest' : 'Rest hanya aktif di hari kunjungan' }}">
                                         </div>
+                                        @if($visit->rest_status === 'completed')
+                                            <div class="small text-warning mt-1 fw-semibold">Selesai Rest</div>
+                                        @elseif($visit->rest_status === 'cancelled')
+                                            <div class="small text-muted mt-1">Ga Jadi Rest</div>
+                                        @endif
                                     </form>
                                 </td>
                                 <td class="small">
@@ -185,53 +191,119 @@
     </div>
 </div>
 
+<div class="modal fade" id="restToggleConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Akhiri Status Rest</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">Pasien akan dilepas dari status rest. Pilih hasil akhirnya:</p>
+                <div class="small text-muted">Selesai Rest tetap masuk histori dan laporan. Ga Jadi Rest tidak dihitung sebagai histori rest.</div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-danger" id="cancelRestButton">Ga Jadi Rest</button>
+                    <button type="button" class="btn btn-primary" id="completeRestButton">Selesai Rest</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
-    document.addEventListener('change', async function (e) {
-        const toggleInput = e.target.closest('.js-visit-toggle input.form-check-input');
-        if (!toggleInput) return;
-
-        const form = toggleInput.closest('form.js-visit-toggle');
-        if (!form) return;
-
+    document.addEventListener('DOMContentLoaded', function () {
         const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        const payload = new FormData(form);
+        const restModalEl = document.getElementById('restToggleConfirmModal');
+        const restModal = restModalEl ? new bootstrap.Modal(restModalEl) : null;
+        const completeRestButton = document.getElementById('completeRestButton');
+        const cancelRestButton = document.getElementById('cancelRestButton');
+        let pendingRestContext = null;
 
-        toggleInput.disabled = true;
-        try {
-            const response = await fetch(form.action, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': token || '',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: payload,
-            });
+        async function submitVisitToggle(form, toggleInput, extraData = {}) {
+            const payload = new FormData(form);
+            Object.entries(extraData).forEach(([key, value]) => payload.set(key, value));
 
-            let body = {};
-            try { body = await response.json(); } catch (_) {}
+            toggleInput.disabled = true;
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token || '',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: payload,
+                });
 
-            if (!response.ok) {
-                throw new Error(body.message || 'Gagal memperbarui status.');
+                let body = {};
+                try { body = await response.json(); } catch (_) {}
+
+                if (!response.ok) {
+                    throw new Error(body.message || 'Gagal memperbarui status.');
+                }
+
+                if (window.showAsyncAlert) {
+                    window.showAsyncAlert('success', body.message || 'Status diperbarui.');
+                }
+
+                if (window.refreshMasterAsyncContainer) {
+                    await window.refreshMasterAsyncContainer(window.location.href, false);
+                } else {
+                    window.location.reload();
+                }
+            } catch (err) {
+                if (window.showAsyncAlert) {
+                    window.showAsyncAlert('danger', err.message || 'Terjadi kesalahan jaringan.');
+                }
+                toggleInput.checked = !toggleInput.checked;
+                toggleInput.disabled = false;
             }
-
-            if (window.showAsyncAlert) {
-                window.showAsyncAlert('success', body.message || 'Status diperbarui.');
-            }
-
-            if (window.refreshMasterAsyncContainer) {
-                await window.refreshMasterAsyncContainer(window.location.href, false);
-            } else {
-                window.location.reload();
-            }
-        } catch (err) {
-            if (window.showAsyncAlert) {
-                window.showAsyncAlert('danger', err.message || 'Terjadi kesalahan jaringan.');
-            }
-            toggleInput.checked = !toggleInput.checked;
-            toggleInput.disabled = false;
         }
+
+        completeRestButton?.addEventListener('click', async function () {
+            if (!pendingRestContext) return;
+            const context = pendingRestContext;
+            pendingRestContext = null;
+            restModal?.hide();
+            await submitVisitToggle(context.form, context.toggleInput, { rest_action: 'completed' });
+        });
+
+        cancelRestButton?.addEventListener('click', async function () {
+            if (!pendingRestContext) return;
+            const context = pendingRestContext;
+            pendingRestContext = null;
+            restModal?.hide();
+            await submitVisitToggle(context.form, context.toggleInput, { rest_action: 'cancelled' });
+        });
+
+        restModalEl?.addEventListener('hidden.bs.modal', function () {
+            if (pendingRestContext) {
+                pendingRestContext.toggleInput.checked = true;
+                pendingRestContext.toggleInput.disabled = false;
+                pendingRestContext = null;
+            }
+        });
+
+        document.addEventListener('change', async function (e) {
+            const toggleInput = e.target.closest('.js-visit-toggle input.form-check-input');
+            if (!toggleInput) return;
+
+            const form = toggleInput.closest('form.js-visit-toggle');
+            if (!form) return;
+
+            const isRestToggle = form.action.includes('/toggle-rest');
+            if (isRestToggle && !toggleInput.checked) {
+                pendingRestContext = { form, toggleInput };
+                restModal?.show();
+                return;
+            }
+
+            await submitVisitToggle(form, toggleInput);
+        });
     });
 </script>
 @endpush

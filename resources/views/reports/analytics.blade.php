@@ -65,7 +65,7 @@
     <div class="col-xl-2 col-md-4 col-sm-6">
         <div class="card h-100">
             <div class="card-body">
-                <div class="small text-muted mb-1">Total Rest</div>
+                <div class="small text-muted mb-1">Total Riwayat Rest</div>
                 <button type="button" class="btn btn-link p-0 fs-4 fw-bold text-warning text-decoration-none" data-bs-toggle="modal" data-bs-target="#summaryRestModal">
                     {{ $summary['rest_total'] }}
                 </button>
@@ -342,7 +342,7 @@
 @include('reports.partials.drilldown-modal', [
     'id' => 'summaryRestModal',
     'title' => 'Detail Total Rest',
-    'subtitle' => 'Daftar kunjungan yang berstatus rest.',
+    'subtitle' => 'Daftar kunjungan yang pernah rest, termasuk yang sudah selesai rest.',
     'items' => $summaryDrilldowns['rest_total']['items'] ?? [],
 ])
 
@@ -405,7 +405,7 @@
     @include('reports.partials.drilldown-modal', [
         'id' => 'restVisitorModal' . $row['type'] . $row['id'],
         'title' => 'Riwayat Rest: ' . $row['name'],
-        'subtitle' => 'Detail kunjungan rest pada periode terpilih.',
+        'subtitle' => 'Detail kunjungan yang pernah rest pada periode terpilih.',
         'items' => $row['drilldown']['items'] ?? [],
     ])
 @endforeach

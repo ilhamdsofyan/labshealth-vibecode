@@ -114,7 +114,7 @@ class ReportService
 
         $summary = [
             'visits_total' => $visits->count(),
-            'rest_total' => $visits->where('is_rest', true)->count(),
+            'rest_total' => $visits->filter(fn (Visit $visit) => $visit->hasRestHistory())->count(),
             'acc_pulang_total' => $visits->where('is_acc_pulang', true)->count(),
             'students_total' => $visits->whereNotNull('student_id')->pluck('student_id')->unique()->count(),
             'employees_total' => $visits->whereNotNull('employee_id')->pluck('employee_id')->unique()->count(),
@@ -239,7 +239,9 @@ class ReportService
             ->whereBetween('visits.visit_date', [$startDate, $endDate])
             ->whereNotNull('visits.student_id');
 
-        if ($flagColumn) {
+        if ($flagColumn === 'is_rest') {
+            $this->applyRestHistoryFilter($query);
+        } elseif ($flagColumn) {
             $query->where("visits.{$flagColumn}", true);
         }
 
@@ -282,7 +284,9 @@ class ReportService
             ->whereBetween('visits.visit_date', [$startDate, $endDate])
             ->whereNotNull('visits.employee_id');
 
-        if ($flagColumn) {
+        if ($flagColumn === 'is_rest') {
+            $this->applyRestHistoryFilter($query);
+        } elseif ($flagColumn) {
             $query->where("visits.{$flagColumn}", true);
         }
 
@@ -355,7 +359,9 @@ class ReportService
             ->orderByDesc('visit_date')
             ->orderByDesc('visit_time');
 
-        if ($flagColumn) {
+        if ($flagColumn === 'is_rest') {
+            $this->applyRestHistoryFilter($query, $query->getQuery()->from);
+        } elseif ($flagColumn) {
             $query->where($flagColumn, true);
         }
 
@@ -517,7 +523,9 @@ class ReportService
             $query->where('employee_id', $personId);
         }
 
-        if ($flagColumn) {
+        if ($flagColumn === 'is_rest') {
+            $this->applyRestHistoryFilter($query, $query->getQuery()->from);
+        } elseif ($flagColumn) {
             $query->where($flagColumn, true);
         }
 
@@ -564,5 +572,13 @@ class ReportService
             'secondary_link' => $historyUrl,
             'secondary_link_label' => $historyUrl ? 'Riwayat' : null,
         ];
+    }
+
+    private function applyRestHistoryFilter($query, string $table = 'visits'): void
+    {
+        $query->where(function ($builder) use ($table) {
+            $builder->where("{$table}.is_rest", true)
+                ->orWhere("{$table}.rest_status", 'completed');
+        });
     }
 }

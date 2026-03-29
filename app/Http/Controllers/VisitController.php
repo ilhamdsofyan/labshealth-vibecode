@@ -32,6 +32,9 @@ class VisitController extends Controller
                 'officer_name',
                 'is_acc_pulang',
                 'is_rest',
+                'rest_started_at',
+                'rest_ended_at',
+                'rest_status',
             ])
             ->with([
                 'diseases:id,name',
@@ -239,6 +242,9 @@ class VisitController extends Controller
                     $victimVisit->update([
                         'is_rest' => false,
                         'bed_id' => null,
+                        'rest_started_at' => $victimVisit->rest_started_at ?: now(),
+                        'rest_ended_at' => now(),
+                        'rest_status' => 'completed',
                     ]);
                 }
             }
@@ -255,16 +261,44 @@ class VisitController extends Controller
                 'is_rest' => true,
                 'is_acc_pulang' => false,
                 'bed_id' => $availableBed->id,
+                'rest_started_at' => now(),
+                'rest_ended_at' => null,
+                'rest_status' => 'active',
             ]);
 
             $message = 'Status rest diaktifkan dan pasien ditempatkan di ' . ($availableBed->name ?: $availableBed->code) . '.';
         } else {
-            $visit->update([
-                'is_rest' => false,
-                'bed_id' => null,
-            ]);
+            $restAction = $request->input('rest_action');
+            if (! in_array($restAction, ['completed', 'cancelled'], true)) {
+                $message = 'Pilih apakah rest selesai atau ga jadi rest terlebih dahulu.';
+                if ($request->expectsJson()) {
+                    return response()->json(['message' => $message], 422);
+                }
 
-            $message = 'Status rest dinonaktifkan dan bed dilepas.';
+                return redirect()->route('visits.index')->with('error', $message);
+            }
+
+            if ($restAction === 'completed') {
+                $visit->update([
+                    'is_rest' => false,
+                    'bed_id' => null,
+                    'rest_started_at' => $visit->rest_started_at ?: now(),
+                    'rest_ended_at' => now(),
+                    'rest_status' => 'completed',
+                ]);
+
+                $message = 'Rest diselesaikan dan histori rest tetap tersimpan.';
+            } else {
+                $visit->update([
+                    'is_rest' => false,
+                    'bed_id' => null,
+                    'rest_started_at' => null,
+                    'rest_ended_at' => null,
+                    'rest_status' => 'cancelled',
+                ]);
+
+                $message = 'Rest dibatalkan dan tidak dihitung sebagai histori rest.';
+            }
         }
 
         if ($request->expectsJson()) {
@@ -279,11 +313,20 @@ class VisitController extends Controller
         $isPulang = $request->boolean('is_acc_pulang');
 
         if ($isPulang) {
+            $restPayload = [];
+            if ($visit->is_rest) {
+                $restPayload = [
+                    'is_rest' => false,
+                    'bed_id' => null,
+                    'rest_started_at' => $visit->rest_started_at ?: now(),
+                    'rest_ended_at' => now(),
+                    'rest_status' => 'completed',
+                ];
+            }
+
             $visit->update([
                 'is_acc_pulang' => true,
-                'is_rest' => false,
-                'bed_id' => null,
-            ]);
+            ] + $restPayload);
             $message = 'Status pulang diaktifkan.';
         } else {
             $visit->update([

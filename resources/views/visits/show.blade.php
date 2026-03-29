@@ -79,6 +79,14 @@
                             <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-2">
                                 <i class="bi bi-house-door-fill me-1"></i>Acc Pulang (Izin)
                             </span>
+                        @elseif($visit->is_rest)
+                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-2">
+                                <i class="bi bi-bed me-1"></i>Sedang Rest
+                            </span>
+                        @elseif($visit->rest_status === 'completed')
+                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-2">
+                                <i class="bi bi-check2-circle me-1"></i>Selesai Rest
+                            </span>
                         @else
                             <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2">
                                 <i class="bi bi-person-check-fill me-1"></i>Kunjungan Teratasi
@@ -91,6 +99,17 @@
                     <div class="alert alert-warning py-2 mb-4">
                         <small class="fw-bold d-block">ALASAN PULANG:</small>
                         <span class="small">{{ $visit->acc_pulang_reason }}</span>
+                    </div>
+                @endif
+
+                @if($visit->is_rest || $visit->rest_status === 'completed')
+                    <div class="alert alert-light border py-2 mb-4">
+                        <small class="fw-bold d-block">RINGKASAN REST:</small>
+                        <span class="small">
+                            Mulai: {{ $visit->rest_started_at?->format('d/m/Y H:i') ?: '-' }}
+                            |
+                            Selesai: {{ $visit->rest_ended_at?->format('d/m/Y H:i') ?: ($visit->is_rest ? 'Masih rest' : '-') }}
+                        </span>
                     </div>
                 @endif
 
@@ -148,7 +167,7 @@
                             <div class="col-md-4 col-6">
                                 <div class="p-3 bg-light rounded border h-100">
                                     <div class="small text-muted mb-1">Temperature</div>
-                                    <div class="fw-bold">{{ $visit->temperature_c !== null ? rtrim(rtrim(number_format((float) $visit->temperature_c, 2, '.', ''), '0'), '.') . ' °C' : '-' }}</div>
+                                    <div class="fw-bold">{{ $visit->temperature_c !== null ? rtrim(rtrim(number_format((float) $visit->temperature_c, 2, '.', ''), '0'), '.') . ' Â°C' : '-' }}</div>
                                 </div>
                             </div>
                         </div>

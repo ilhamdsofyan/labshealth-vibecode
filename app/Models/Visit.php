@@ -35,6 +35,9 @@ class Visit extends Model
         'visit_type',
         'is_acc_pulang',
         'is_rest',
+        'rest_started_at',
+        'rest_ended_at',
+        'rest_status',
         'bed_id',
         'acc_pulang_reason',
         'class_at_visit',
@@ -47,6 +50,8 @@ class Visit extends Model
             'visit_date' => 'date',
             'is_acc_pulang' => 'boolean',
             'is_rest' => 'boolean',
+            'rest_started_at' => 'datetime',
+            'rest_ended_at' => 'datetime',
             'height_cm' => 'decimal:2',
             'weight_kg' => 'decimal:2',
             'heart_rate' => 'integer',
@@ -139,5 +144,23 @@ class Visit extends Model
             return $query->where('visit_type', $type);
         }
         return $query;
+    }
+
+    public function hasRestHistory(): bool
+    {
+        return $this->is_rest || $this->rest_status === 'completed';
+    }
+
+    public function getRestLabelAttribute(): ?string
+    {
+        if ($this->is_rest) {
+            return 'Rest';
+        }
+
+        return match ($this->rest_status) {
+            'completed' => 'Selesai Rest',
+            'cancelled' => 'Ga Jadi Rest',
+            default => null,
+        };
     }
 }
