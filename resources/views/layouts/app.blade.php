@@ -634,6 +634,13 @@
                             <i class="bi bi-person-circle me-2"></i>Profil Saya
                         </a>
                     </li>
+                    @if(auth()->user()->employee_id)
+                        <li>
+                            <a href="{{ route('profile.my-history') }}" class="dropdown-item">
+                                <i class="bi bi-clock-history me-2"></i>Riwayat Saya
+                            </a>
+                        </li>
+                    @endif
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <form action="{{ route('logout') }}" method="POST">

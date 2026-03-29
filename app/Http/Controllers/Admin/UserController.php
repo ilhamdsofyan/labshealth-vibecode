@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Employee;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +16,7 @@ class UserController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = User::with('roles');
+        $query = User::with(['roles', 'employee:id,name,nip,role_type,department,avatar_path']);
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
@@ -31,7 +32,10 @@ class UserController extends Controller
     public function create(): View
     {
         $roles = Role::orderBy('display_name')->get();
-        return view('admin.users.create', compact('roles'));
+        $employees = Employee::orderBy('name')
+            ->get(['id', 'name', 'nip', 'role_type', 'department']);
+
+        return view('admin.users.create', compact('roles', 'employees'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -41,6 +45,7 @@ class UserController extends Controller
             'email' => ['required', 'email', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'is_active' => ['boolean'],
+            'employee_id' => ['nullable', 'exists:employees,id', 'unique:users,employee_id'],
             'roles' => ['array'],
             'roles.*' => ['exists:roles,id'],
         ]);
@@ -49,6 +54,7 @@ class UserController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $validated['password'],
+            'employee_id' => $validated['employee_id'] ?? null,
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -64,7 +70,10 @@ class UserController extends Controller
     {
         $roles = Role::orderBy('display_name')->get();
         $userRoles = $user->roles->pluck('id')->toArray();
-        return view('admin.users.edit', compact('user', 'roles', 'userRoles'));
+        $employees = Employee::orderBy('name')
+            ->get(['id', 'name', 'nip', 'role_type', 'department']);
+
+        return view('admin.users.edit', compact('user', 'roles', 'userRoles', 'employees'));
     }
 
     public function update(Request $request, User $user): RedirectResponse
@@ -74,6 +83,7 @@ class UserController extends Controller
             'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'is_active' => ['boolean'],
+            'employee_id' => ['nullable', 'exists:employees,id', Rule::unique('users', 'employee_id')->ignore($user->id)],
             'roles' => ['array'],
             'roles.*' => ['exists:roles,id'],
         ]);
@@ -81,6 +91,7 @@ class UserController extends Controller
         $user->update([
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'employee_id' => $validated['employee_id'] ?? null,
             'is_active' => $request->boolean('is_active', true),
         ]);
 

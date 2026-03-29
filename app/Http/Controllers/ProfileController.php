@@ -16,8 +16,19 @@ class ProfileController extends Controller
     public function index(): View
     {
         return view('profile.index', [
-            'user' => auth()->user(),
+            'user' => auth()->user()->loadMissing('employee'),
         ]);
+    }
+
+    public function myHistory(Request $request): RedirectResponse
+    {
+        $user = $request->user()->loadMissing('employee');
+
+        if (! $user->employee) {
+            return back()->with('error', 'Akun ini belum ditautkan ke data pegawai.');
+        }
+
+        return redirect()->route('visitors.employees.history', $user->employee);
     }
 
     public function update(Request $request): RedirectResponse

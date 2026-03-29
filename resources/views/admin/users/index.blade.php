@@ -31,6 +31,7 @@
                     <tr>
                         <th>Nama</th>
                         <th>Email</th>
+                        <th>Pegawai</th>
                         <th>Role</th>
                         <th>Status</th>
                         <th width="120">Aksi</th>
@@ -41,13 +42,25 @@
                         <tr>
                             <td class="fw-medium">
                                 <div class="d-flex align-items-center gap-2">
-                                    <div class="user-avatar" style="width:30px;height:30px;font-size:0.7rem;background:{{ $user->is_active ? '#4F46E5' : '#94A3B8' }};color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;">
-                                        {{ strtoupper(substr($user->name, 0, 1)) }}
-                                    </div>
+                                    @if($user->avatar_url)
+                                        <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">
+                                    @else
+                                        <div class="user-avatar" style="width:30px;height:30px;font-size:0.7rem;background:{{ $user->is_active ? '#4F46E5' : '#94A3B8' }};color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;">
+                                            {{ strtoupper(substr($user->name, 0, 1)) }}
+                                        </div>
+                                    @endif
                                     {{ $user->name }}
                                 </div>
                             </td>
                             <td class="small text-muted">{{ $user->email }}</td>
+                            <td class="small">
+                                @if($user->employee)
+                                    <div class="fw-semibold">{{ $user->employee->name }}</div>
+                                    <div class="text-muted">{{ $user->employee->nip ?: '-' }}{{ $user->employee->role_type ? ' | ' . ucfirst($user->employee->role_type) : '' }}</div>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
                             <td>
                                 @foreach($user->roles as $role)
                                     <span class="badge bg-primary bg-opacity-10 text-primary">{{ $role->display_name }}</span>
@@ -75,7 +88,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">Tidak ada data user</td>
+                            <td colspan="6" class="text-center text-muted py-4">Tidak ada data user</td>
                         </tr>
                     @endforelse
                 </tbody>

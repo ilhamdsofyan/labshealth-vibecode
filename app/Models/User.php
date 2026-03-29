@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -18,6 +19,7 @@ class User extends Authenticatable
         'email',
         'password',
         'avatar',
+        'employee_id',
         'google_id',
         'is_active',
     ];
@@ -46,6 +48,11 @@ class User extends Authenticatable
     public function imports(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(ImportLog::class, 'uploaded_by');
+    }
+
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class);
     }
 
     // ─── Permission Helpers ──────────────────────────────────
@@ -112,14 +119,21 @@ class User extends Authenticatable
 
     public function getAvatarUrlAttribute(): ?string
     {
-        if (! filled($this->avatar)) {
-            return null;
+        $rawAvatar = $this->avatar;
+
+        if (filled($rawAvatar)) {
+            if (str_starts_with($rawAvatar, 'http://') || str_starts_with($rawAvatar, 'https://') || str_starts_with($rawAvatar, '/')) {
+                return $rawAvatar;
+            }
+
+            return asset('storage/' . ltrim($rawAvatar, '/'));
         }
 
-        if (str_starts_with($this->avatar, 'http://') || str_starts_with($this->avatar, 'https://') || str_starts_with($this->avatar, '/')) {
-            return $this->avatar;
+        $employee = $this->relationLoaded('employee') ? $this->employee : $this->employee()->first();
+        if ($employee && filled($employee->avatar_path)) {
+            return asset('storage/' . ltrim($employee->avatar_path, '/'));
         }
 
-        return asset('storage/' . ltrim($this->avatar, '/'));
+        return null;
     }
 }

@@ -41,6 +41,7 @@ Route::post('logout', [LoginController::class, 'logout'])->name('logout')->middl
 
 Route::middleware('auth')->group(function () {
     Route::get('profile', [ProfileController::class, 'index'])->name('profile.index');
+    Route::get('profile/riwayat-kunjungan', [ProfileController::class, 'myHistory'])->name('profile.my-history');
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::delete('profile/avatar', [ProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');

@@ -47,7 +47,27 @@
                 <div class="small text-muted">Status akun</div>
                 <div class="fw-semibold mb-3">{{ $user->is_active ? 'Aktif' : 'Nonaktif' }}</div>
 
-                @if($user->avatar_url)
+                @if($user->employee)
+                    <div class="border rounded-3 p-3 text-start bg-light-subtle mb-3">
+                        <div class="small text-muted mb-1">Tertaut ke Pegawai</div>
+                        <div class="fw-semibold">{{ $user->employee->name }}</div>
+                        <div class="small text-muted">
+                            {{ $user->employee->nip ?: '-' }}
+                            @if($user->employee->role_type)
+                                | {{ ucfirst($user->employee->role_type) }}
+                            @endif
+                            @if($user->employee->department)
+                                | {{ $user->employee->department }}
+                            @endif
+                        </div>
+                    </div>
+
+                    <a href="{{ route('profile.my-history') }}" class="btn btn-outline-primary btn-sm mb-3">
+                        <i class="bi bi-clock-history me-1"></i>Lihat Riwayat Kunjungan Saya
+                    </a>
+                @endif
+
+                @if($user->avatar)
                     <form method="POST" action="{{ route('profile.avatar.remove') }}">
                         @csrf
                         @method('DELETE')

@@ -48,6 +48,19 @@
                     </div>
                 </div>
                 <div class="col-md-6">
+                    <label class="form-label small fw-semibold">Tautkan ke Pegawai</label>
+                    <select name="employee_id" class="form-select">
+                        <option value="">Tidak ditautkan</option>
+                        @foreach($employees as $employee)
+                            <option value="{{ $employee->id }}" {{ (string) old('employee_id') === (string) $employee->id ? 'selected' : '' }}>
+                                {{ $employee->name }}{{ $employee->nip ? ' - ' . $employee->nip : '' }}{{ $employee->role_type ? ' (' . ucfirst($employee->role_type) . ')' : '' }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="form-text">Opsional. Jika user ini adalah pegawai, tautkan agar bisa memakai data pegawai dan melihat riwayat pribadi.</div>
+                    @error('employee_id') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-6">
                     <div class="form-check form-switch mt-4">
                         <input type="checkbox" name="is_active" value="1" class="form-check-input" id="is_active"
                                {{ old('is_active', true) ? 'checked' : '' }}>

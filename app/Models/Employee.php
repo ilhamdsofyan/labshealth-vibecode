@@ -19,4 +19,9 @@ class Employee extends Model
     {
         return $this->hasOne(EmployeeMedicalRecord::class);
     }
+
+    public function user(): HasOne
+    {
+        return $this->hasOne(User::class);
+    }
 }
