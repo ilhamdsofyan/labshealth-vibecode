@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ClinicAgendaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\VisitorHistoryController;
 use App\Http\Controllers\VisitController;
 use App\Http\Controllers\Admin\DiseaseController;
@@ -54,6 +55,9 @@ Route::middleware(['auth', 'permission'])->group(function () {
     Route::get('reports/analytics', [ReportController::class, 'analytics'])->name('reports.analytics');
     Route::get('reports/export-excel', [ReportController::class, 'exportExcel'])->name('reports.export-excel');
     Route::get('reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
+    Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::post('settings/maintenance', [SettingsController::class, 'maintenance'])->name('settings.maintenance');
 
     // Admin Panel
     Route::prefix('admin')->name('admin.')->group(function () {

@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#006060">
+    <meta name="theme-color" content="{{ $appUiSettings['primary_color'] ?? '#006060' }}">
 
-    <title>@yield('title', 'UKS') - LabsHealth</title>
+    <title>@yield('title', 'UKS') - {{ $appUiSettings['app_name'] ?? 'LabsHealth' }}</title>
 
     <script>
         (function () {
@@ -17,8 +17,8 @@
     </script>
 
     <link rel="manifest" href="{{ asset('manifest.json') }}">
-    <link rel="apple-touch-icon" href="{{ asset('assets/img/Logo.png') }}">
-    <link rel="icon" type="image/png" href="{{ asset('assets/img/Logo.png') }}">
+    <link rel="apple-touch-icon" href="{{ $appUiSettings['logo_square_url'] ?? asset('assets/img/Logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ $appUiSettings['logo_square_url'] ?? asset('assets/img/Logo.png') }}">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -35,8 +35,8 @@
             --navbar-height: 80px;
             --radius-lg: 12px;
             --radius-xl: 16px;
-            --primary: #006060;
-            --accent: #f0d000;
+            --primary: {{ $appUiSettings['primary_color'] ?? '#006060' }};
+            --accent: {{ $appUiSettings['accent_color'] ?? '#f0d000' }};
             --bg-body: #f8f6f6;
             --bg-surface: #ffffff;
             --bg-surface-soft: #f3f4f6;
@@ -1026,7 +1026,8 @@
                 const query = this.value.trim();
                 if (quickSearchTimer) clearTimeout(quickSearchTimer);
 
-                if (query.length < 2) {
+                const minChars = {{ (int) ($appUiSettings['quick_search_min_chars'] ?? 2) }};
+                if (query.length < minChars) {
                     hideQuickSearchResults();
                     return;
                 }

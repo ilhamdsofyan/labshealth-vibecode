@@ -1,4 +1,15 @@
 {{-- Shared form fields for create/edit --}}
+@php
+    $appSettings = app(\App\Services\SettingsService::class)->all();
+    $defaultVisitTime = ($appSettings['visit_default_time_mode'] ?? 'now') === 'blank' ? '' : date('H:i');
+    $defaultOfficerName = match ($appSettings['visit_officer_prefill_mode'] ?? 'current_user') {
+        'custom' => $appSettings['visit_officer_default_name'] ?? '',
+        'blank' => '',
+        default => auth()->user()->name,
+    };
+    $showStandardExam = old('visit_form_show_standard_exam', $appSettings['visit_form_show_standard_exam'] ?? '1');
+@endphp
+
 @if($errors->any())
     <div class="alert alert-danger py-2">
         <ul class="mb-0 small">
@@ -20,7 +31,7 @@
     <div class="col-md-4 col-6">
         <label class="form-label small fw-semibold">Waktu <span class="text-danger">*</span></label>
         <input type="time" name="visit_time" class="form-control @error('visit_time') is-invalid @enderror"
-               value="{{ old('visit_time', isset($visit) ? $visit->visit_time : date('H:i')) }}" required>
+               value="{{ old('visit_time', isset($visit) ? $visit->visit_time : $defaultVisitTime) }}" required>
         @error('visit_time') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
@@ -92,7 +103,7 @@
         @error('class_or_department') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
-    <div class="col-12">
+    <div class="col-12 {{ $showStandardExam ? '' : 'd-none' }}" id="standardExamWrapper">
         <div class="card border-0 shadow-sm bg-light bg-opacity-50">
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
@@ -247,7 +258,7 @@
     <div class="col-md-12">
         <label class="form-label small fw-semibold">Nama Petugas <span class="text-danger">*</span></label>
         <input type="text" name="officer_name" class="form-control @error('officer_name') is-invalid @enderror"
-               value="{{ old('officer_name', $visit->officer_name ?? auth()->user()->name) }}" required>
+               value="{{ old('officer_name', $visit->officer_name ?? $defaultOfficerName) }}" required>
         @error('officer_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 

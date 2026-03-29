@@ -119,5 +119,14 @@ class MenuSeeder extends Seeder
             'permission_name' => 'admin.menus.index',
             'order' => 3,
         ]);
+
+        Menu::firstOrCreate(['route_name' => 'settings.index'], [
+            'parent_id' => $admin->id,
+            'name' => 'Settings',
+            'route_name' => 'settings.index',
+            'icon' => 'bi-sliders',
+            'permission_name' => 'settings.index',
+            'order' => 4,
+        ]);
     }
 }

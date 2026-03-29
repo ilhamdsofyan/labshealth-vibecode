@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Http\ViewComposers\MenuComposer;
+use App\Services\SettingsService;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -20,5 +21,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Share sidebar menus with all views that use the app layout
         View::composer('layouts.sidebar', MenuComposer::class);
+        View::composer('layouts.app', function ($view) {
+            $view->with('appUiSettings', app(SettingsService::class)->ui());
+        });
     }
 }
