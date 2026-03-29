@@ -6,6 +6,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
@@ -27,6 +28,7 @@ class ProfileController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
             'avatar' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
+            'avatar_cropped_data' => ['nullable', 'string'],
         ]);
 
         $payload = [
@@ -34,10 +36,9 @@ class ProfileController extends Controller
             'email' => $validated['email'],
         ];
 
-        if ($request->hasFile('avatar')) {
-            $this->deleteStoredAvatarIfNeeded($user->avatar);
-            $path = $request->file('avatar')->store('avatars/users', 'public');
-            $payload['avatar'] = Storage::disk('public')->url($path);
+        $avatarUrl = $this->storeAvatar($request, $user->avatar);
+        if ($avatarUrl) {
+            $payload['avatar'] = $avatarUrl;
         }
 
         $user->update($payload);
@@ -96,5 +97,43 @@ class ProfileController extends Controller
         if ($path !== '' && Storage::disk('public')->exists($path)) {
             Storage::disk('public')->delete($path);
         }
+    }
+
+    private function storeAvatar(Request $request, ?string $oldAvatarUrl = null): ?string
+    {
+        if ($request->filled('avatar_cropped_data')) {
+            $data = $request->string('avatar_cropped_data')->toString();
+
+            if (preg_match('/^data:image\/(\w+);base64,/', $data, $matches)) {
+                $extension = strtolower($matches[1]);
+                if ($extension === 'jpeg') {
+                    $extension = 'jpg';
+                }
+
+                if (! in_array($extension, ['jpg', 'png', 'webp'], true)) {
+                    return null;
+                }
+
+                $binary = base64_decode(substr($data, strpos($data, ',') + 1), true);
+                if ($binary === false) {
+                    return null;
+                }
+
+                $path = 'avatars/users/' . Str::uuid() . '.' . $extension;
+                Storage::disk('public')->put($path, $binary);
+                $this->deleteStoredAvatarIfNeeded($oldAvatarUrl);
+
+                return Storage::disk('public')->url($path);
+            }
+        }
+
+        if ($request->hasFile('avatar')) {
+            $path = $request->file('avatar')->store('avatars/users', 'public');
+            $this->deleteStoredAvatarIfNeeded($oldAvatarUrl);
+
+            return Storage::disk('public')->url($path);
+        }
+
+        return null;
     }
 }

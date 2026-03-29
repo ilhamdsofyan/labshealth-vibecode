@@ -2,6 +2,21 @@
 
 @section('title', 'Profil Saya')
 
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
+<style>
+    .profile-avatar-preview {
+        width: 112px;
+        height: 112px;
+        object-fit: cover;
+    }
+    #profileCropImage {
+        max-width: 100%;
+        max-height: 60vh;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
     <div>
@@ -15,13 +30,16 @@
         <div class="card h-100">
             <div class="card-header">Ringkasan Akun</div>
             <div class="card-body text-center">
-                @if($user->avatar)
-                    <img src="{{ $user->avatar }}" alt="{{ $user->name }}" class="rounded-circle border shadow-sm mx-auto mb-3" width="112" height="112" style="object-fit: cover;">
-                @else
-                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 112px; height: 112px; background: linear-gradient(135deg, var(--accent), var(--primary)); color: #111827; font-size: 2rem; font-weight: 800;">
-                        {{ strtoupper(substr($user->name, 0, 1)) }}
-                    </div>
-                @endif
+                <div class="mb-3" id="profileAvatarSummaryWrapper">
+                    @if($user->avatar)
+                        <img src="{{ $user->avatar }}" alt="{{ $user->name }}" class="rounded-circle border shadow-sm mx-auto profile-avatar-preview" id="profileAvatarSummaryImage">
+                    @else
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center profile-avatar-preview mx-auto" id="profileAvatarSummaryFallback" style="background: linear-gradient(135deg, var(--accent), var(--primary)); color: #111827; font-size: 2rem; font-weight: 800;">
+                            {{ strtoupper(substr($user->name, 0, 1)) }}
+                        </div>
+                        <img src="" alt="{{ $user->name }}" class="rounded-circle border shadow-sm mx-auto profile-avatar-preview d-none" id="profileAvatarSummaryImage">
+                    @endif
+                </div>
 
                 <h5 class="fw-bold mb-1">{{ $user->name }}</h5>
                 <div class="text-muted small mb-3">{{ $user->email }}</div>
@@ -61,9 +79,26 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label small fw-semibold">Avatar</label>
-                            <input type="file" name="avatar" class="form-control @error('avatar') is-invalid @enderror" accept=".png,.jpg,.jpeg,.webp">
-                            <div class="form-text">Maksimal 2MB. Format PNG, JPG, JPEG, atau WEBP.</div>
+                            <div class="text-center border rounded-3 p-3 bg-light-subtle mb-3">
+                                <img
+                                    src="{{ old('avatar_cropped_data', $user->avatar ?: '') }}"
+                                    alt="Preview Avatar"
+                                    class="rounded-circle border shadow-sm mx-auto profile-avatar-preview {{ old('avatar_cropped_data', $user->avatar) ? '' : 'd-none' }}"
+                                    id="profileAvatarPreview"
+                                >
+                                <div
+                                    class="rounded-circle d-inline-flex align-items-center justify-content-center profile-avatar-preview mx-auto {{ old('avatar_cropped_data', $user->avatar) ? 'd-none' : '' }}"
+                                    id="profileAvatarPreviewFallback"
+                                    style="background: linear-gradient(135deg, var(--accent), var(--primary)); color: #111827; font-size: 2rem; font-weight: 800;"
+                                >
+                                    {{ strtoupper(substr(old('name', $user->name), 0, 1)) }}
+                                </div>
+                            </div>
+                            <input type="file" name="avatar" id="profileAvatarInput" class="form-control @error('avatar') is-invalid @enderror" accept=".png,.jpg,.jpeg,.webp">
+                            <input type="hidden" name="avatar_cropped_data" id="profileAvatarCroppedData" value="{{ old('avatar_cropped_data', '') }}">
+                            <div class="form-text">Maksimal 2MB. Format PNG, JPG, JPEG, atau WEBP. Setelah pilih gambar, Anda bisa crop dulu sebelum menyimpan.</div>
                             @error('avatar') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            @error('avatar_cropped_data') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                         </div>
                     </div>
 
@@ -105,4 +140,145 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="profileCropModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crop Avatar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="profileCropImage" src="" alt="Crop Avatar">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" id="applyProfileCrop">Gunakan Avatar</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const avatarInput = document.getElementById('profileAvatarInput');
+        const avatarPreview = document.getElementById('profileAvatarPreview');
+        const avatarPreviewFallback = document.getElementById('profileAvatarPreviewFallback');
+        const avatarSummaryImage = document.getElementById('profileAvatarSummaryImage');
+        const avatarSummaryFallback = document.getElementById('profileAvatarSummaryFallback');
+        const croppedDataInput = document.getElementById('profileAvatarCroppedData');
+        const nameInput = document.querySelector('input[name="name"]');
+        const cropModalEl = document.getElementById('profileCropModal');
+        const cropImage = document.getElementById('profileCropImage');
+        const applyCropBtn = document.getElementById('applyProfileCrop');
+
+        if (!avatarInput || !cropModalEl || typeof Cropper === 'undefined') {
+            return;
+        }
+
+        const cropModal = new bootstrap.Modal(cropModalEl);
+        let cropper = null;
+
+        function syncFallbackInitial() {
+            const initial = (nameInput?.value || '{{ strtoupper(substr($user->name, 0, 1)) }}').trim().charAt(0).toUpperCase() || 'U';
+
+            if (avatarPreviewFallback) {
+                avatarPreviewFallback.textContent = initial;
+            }
+
+            if (avatarSummaryFallback) {
+                avatarSummaryFallback.textContent = initial;
+            }
+        }
+
+        function setPreview(dataUrl) {
+            const hasImage = Boolean(dataUrl);
+
+            if (avatarPreview) {
+                avatarPreview.src = hasImage ? dataUrl : '';
+                avatarPreview.classList.toggle('d-none', !hasImage);
+            }
+
+            if (avatarPreviewFallback) {
+                avatarPreviewFallback.classList.toggle('d-none', hasImage);
+            }
+
+            if (avatarSummaryImage) {
+                avatarSummaryImage.src = hasImage ? dataUrl : '{{ $user->avatar ?: '' }}';
+                avatarSummaryImage.classList.toggle('d-none', !(hasImage || {{ $user->avatar ? 'true' : 'false' }}));
+            }
+
+            if (avatarSummaryFallback) {
+                avatarSummaryFallback.classList.toggle('d-none', hasImage || {{ $user->avatar ? 'true' : 'false' }});
+            }
+        }
+
+        function openCropper(file) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                cropImage.src = event.target.result;
+                cropModal.show();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        cropModalEl.addEventListener('shown.bs.modal', function () {
+            if (cropper) {
+                cropper.destroy();
+            }
+
+            cropper = new Cropper(cropImage, {
+                aspectRatio: 1,
+                viewMode: 1,
+                dragMode: 'move',
+                autoCropArea: 1,
+                responsive: true,
+                background: false,
+            });
+        });
+
+        cropModalEl.addEventListener('hidden.bs.modal', function () {
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+        });
+
+        avatarInput.addEventListener('change', function (event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            croppedDataInput.value = '';
+            openCropper(file);
+        });
+
+        applyCropBtn.addEventListener('click', function () {
+            if (!cropper) {
+                return;
+            }
+
+            const canvas = cropper.getCroppedCanvas({
+                width: 512,
+                height: 512,
+                imageSmoothingQuality: 'high',
+            });
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+            croppedDataInput.value = dataUrl;
+            avatarInput.value = '';
+            setPreview(dataUrl);
+            cropModal.hide();
+        });
+
+        nameInput?.addEventListener('input', syncFallbackInitial);
+
+        syncFallbackInitial();
+        setPreview(croppedDataInput.value || '{{ $user->avatar ?: '' }}');
+    });
+</script>
+@endpush
