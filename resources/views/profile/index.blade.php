@@ -31,8 +31,8 @@
             <div class="card-header">Ringkasan Akun</div>
             <div class="card-body text-center">
                 <div class="mb-3" id="profileAvatarSummaryWrapper">
-                    @if($user->avatar)
-                        <img src="{{ $user->avatar }}" alt="{{ $user->name }}" class="rounded-circle border shadow-sm mx-auto profile-avatar-preview" id="profileAvatarSummaryImage">
+                    @if($user->avatar_url)
+                        <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}" class="rounded-circle border shadow-sm mx-auto profile-avatar-preview" id="profileAvatarSummaryImage">
                     @else
                         <div class="rounded-circle d-inline-flex align-items-center justify-content-center profile-avatar-preview mx-auto" id="profileAvatarSummaryFallback" style="background: linear-gradient(135deg, var(--accent), var(--primary)); color: #111827; font-size: 2rem; font-weight: 800;">
                             {{ strtoupper(substr($user->name, 0, 1)) }}
@@ -47,7 +47,7 @@
                 <div class="small text-muted">Status akun</div>
                 <div class="fw-semibold mb-3">{{ $user->is_active ? 'Aktif' : 'Nonaktif' }}</div>
 
-                @if($user->avatar)
+                @if($user->avatar_url)
                     <form method="POST" action="{{ route('profile.avatar.remove') }}">
                         @csrf
                         @method('DELETE')
@@ -81,13 +81,13 @@
                             <label class="form-label small fw-semibold">Avatar</label>
                             <div class="text-center border rounded-3 p-3 bg-light-subtle mb-3">
                                 <img
-                                    src="{{ old('avatar_cropped_data', $user->avatar ?: '') }}"
+                                    src="{{ old('avatar_cropped_data', $user->avatar_url ?: '') }}"
                                     alt="Preview Avatar"
-                                    class="rounded-circle border shadow-sm mx-auto profile-avatar-preview {{ old('avatar_cropped_data', $user->avatar) ? '' : 'd-none' }}"
+                                    class="rounded-circle border shadow-sm mx-auto profile-avatar-preview {{ old('avatar_cropped_data', $user->avatar_url) ? '' : 'd-none' }}"
                                     id="profileAvatarPreview"
                                 >
                                 <div
-                                    class="rounded-circle d-inline-flex align-items-center justify-content-center profile-avatar-preview mx-auto {{ old('avatar_cropped_data', $user->avatar) ? 'd-none' : '' }}"
+                                    class="rounded-circle d-inline-flex align-items-center justify-content-center profile-avatar-preview mx-auto {{ old('avatar_cropped_data', $user->avatar_url) ? 'd-none' : '' }}"
                                     id="profileAvatarPreviewFallback"
                                     style="background: linear-gradient(135deg, var(--accent), var(--primary)); color: #111827; font-size: 2rem; font-weight: 800;"
                                 >
@@ -207,12 +207,12 @@
             }
 
             if (avatarSummaryImage) {
-                avatarSummaryImage.src = hasImage ? dataUrl : '{{ $user->avatar ?: '' }}';
-                avatarSummaryImage.classList.toggle('d-none', !(hasImage || {{ $user->avatar ? 'true' : 'false' }}));
+                avatarSummaryImage.src = hasImage ? dataUrl : '{{ $user->avatar_url ?: '' }}';
+                avatarSummaryImage.classList.toggle('d-none', !(hasImage || {{ $user->avatar_url ? 'true' : 'false' }}));
             }
 
             if (avatarSummaryFallback) {
-                avatarSummaryFallback.classList.toggle('d-none', hasImage || {{ $user->avatar ? 'true' : 'false' }});
+                avatarSummaryFallback.classList.toggle('d-none', hasImage || {{ $user->avatar_url ? 'true' : 'false' }});
             }
         }
 
@@ -278,7 +278,7 @@
         nameInput?.addEventListener('input', syncFallbackInitial);
 
         syncFallbackInitial();
-        setPreview(croppedDataInput.value || '{{ $user->avatar ?: '' }}');
+        setPreview(croppedDataInput.value || '{{ $user->avatar_url ?: '' }}');
     });
 </script>
 @endpush

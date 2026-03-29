@@ -36,9 +36,9 @@ class ProfileController extends Controller
             'email' => $validated['email'],
         ];
 
-        $avatarUrl = $this->storeAvatar($request, $user->avatar);
-        if ($avatarUrl) {
-            $payload['avatar'] = $avatarUrl;
+        $avatarPath = $this->storeAvatar($request, $user->avatar);
+        if ($avatarPath) {
+            $payload['avatar'] = $avatarPath;
         }
 
         $user->update($payload);
@@ -82,24 +82,36 @@ class ProfileController extends Controller
         return back()->with('success', 'Avatar berhasil dihapus.');
     }
 
-    private function deleteStoredAvatarIfNeeded(?string $avatarUrl): void
+    private function deleteStoredAvatarIfNeeded(?string $avatarValue): void
     {
-        if (! filled($avatarUrl)) {
+        if (! filled($avatarValue)) {
             return;
         }
 
-        $storagePrefix = Storage::disk('public')->url('');
-        if (! str_starts_with($avatarUrl, $storagePrefix)) {
-            return;
+        $path = $avatarValue;
+        $storagePrefix = rtrim(Storage::disk('public')->url(''), '/');
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            if (! str_starts_with($path, $storagePrefix)) {
+                return;
+            }
+
+            $path = ltrim(str_replace($storagePrefix, '', $path), '/');
+        } elseif (str_starts_with($path, '/')) {
+            $publicPrefix = trim(parse_url($storagePrefix, PHP_URL_PATH) ?: '', '/');
+            $path = ltrim($path, '/');
+
+            if ($publicPrefix !== '' && str_starts_with($path, $publicPrefix . '/')) {
+                $path = substr($path, strlen($publicPrefix) + 1);
+            }
         }
 
-        $path = ltrim(str_replace($storagePrefix, '', $avatarUrl), '/');
         if ($path !== '' && Storage::disk('public')->exists($path)) {
             Storage::disk('public')->delete($path);
         }
     }
 
-    private function storeAvatar(Request $request, ?string $oldAvatarUrl = null): ?string
+    private function storeAvatar(Request $request, ?string $oldAvatarValue = null): ?string
     {
         if ($request->filled('avatar_cropped_data')) {
             $data = $request->string('avatar_cropped_data')->toString();
@@ -121,17 +133,17 @@ class ProfileController extends Controller
 
                 $path = 'avatars/users/' . Str::uuid() . '.' . $extension;
                 Storage::disk('public')->put($path, $binary);
-                $this->deleteStoredAvatarIfNeeded($oldAvatarUrl);
+                $this->deleteStoredAvatarIfNeeded($oldAvatarValue);
 
-                return Storage::disk('public')->url($path);
+                return $path;
             }
         }
 
         if ($request->hasFile('avatar')) {
             $path = $request->file('avatar')->store('avatars/users', 'public');
-            $this->deleteStoredAvatarIfNeeded($oldAvatarUrl);
+            $this->deleteStoredAvatarIfNeeded($oldAvatarValue);
 
-            return Storage::disk('public')->url($path);
+            return $path;
         }
 
         return null;
