@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -121,6 +120,6 @@ class User extends Authenticatable
             return $this->avatar;
         }
 
-        return Storage::disk('public')->url($this->avatar);
+        return asset('storage/' . ltrim($this->avatar, '/'));
     }
 }

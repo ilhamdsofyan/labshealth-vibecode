@@ -89,20 +89,23 @@ class ProfileController extends Controller
         }
 
         $path = $avatarValue;
-        $storagePrefix = rtrim(Storage::disk('public')->url(''), '/');
 
         if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            if (! str_starts_with($path, $storagePrefix)) {
+            $parsedPath = trim(parse_url($path, PHP_URL_PATH) ?: '', '/');
+            if ($parsedPath === '') {
                 return;
             }
 
-            $path = ltrim(str_replace($storagePrefix, '', $path), '/');
+            if (str_starts_with($parsedPath, 'storage/')) {
+                $path = substr($parsedPath, strlen('storage/'));
+            } else {
+                return;
+            }
         } elseif (str_starts_with($path, '/')) {
-            $publicPrefix = trim(parse_url($storagePrefix, PHP_URL_PATH) ?: '', '/');
             $path = ltrim($path, '/');
 
-            if ($publicPrefix !== '' && str_starts_with($path, $publicPrefix . '/')) {
-                $path = substr($path, strlen($publicPrefix) + 1);
+            if (str_starts_with($path, 'storage/')) {
+                $path = substr($path, strlen('storage/'));
             }
         }
 
