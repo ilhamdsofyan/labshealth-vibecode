@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\UserAvatarHelper;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -119,21 +120,6 @@ class User extends Authenticatable
 
     public function getAvatarUrlAttribute(): ?string
     {
-        $rawAvatar = $this->avatar;
-
-        if (filled($rawAvatar)) {
-            if (str_starts_with($rawAvatar, 'http://') || str_starts_with($rawAvatar, 'https://') || str_starts_with($rawAvatar, '/')) {
-                return $rawAvatar;
-            }
-
-            return asset('storage/' . ltrim($rawAvatar, '/'));
-        }
-
-        $employee = $this->relationLoaded('employee') ? $this->employee : $this->employee()->first();
-        if ($employee && filled($employee->avatar_path)) {
-            return asset('storage/' . ltrim($employee->avatar_path, '/'));
-        }
-
-        return null;
+        return UserAvatarHelper::resolveUrl($this);
     }
 }
