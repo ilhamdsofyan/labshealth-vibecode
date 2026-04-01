@@ -1,4 +1,6 @@
-FROM composer:2 AS vendor
+FROM composer:2 AS composer-bin
+
+FROM php:8.3-cli AS vendor
 
 WORKDIR /app
 
@@ -11,6 +13,8 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd zip intl \
     && rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer-bin /usr/bin/composer /usr/bin/composer
 
 COPY composer.json composer.lock ./
 RUN composer install \
