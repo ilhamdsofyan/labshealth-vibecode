@@ -9,7 +9,7 @@
 
 ## Docker Deployment
 
-Project ini sudah siap dijalankan dalam Docker tanpa container database lokal. Database diarahkan ke host eksternal melalui variabel `.env`.
+Project ini sudah siap dijalankan dalam Docker tanpa container database lokal. Database diarahkan ke host eksternal melalui variabel `.env`. Runtime final memakai `php artisan serve` pada port dinamis agar kompatibel dengan platform seperti Railway.
 
 ### File yang disediakan
 
@@ -44,7 +44,8 @@ RUN_MIGRATIONS=true
 
 - Container expose aplikasi ke port `${APP_PORT}` dan default-nya `8002`.
 - `DB_HOST` jangan pakai `localhost` kecuali database memang berjalan di dalam container yang sama.
-- Runtime menggunakan Apache + PHP 8.3 dan asset Vite dibuild ke image saat proses build.
+- Runtime menggunakan PHP 8.3 CLI dan asset Vite dibuild ke image saat proses build.
+- Untuk Railway, biarkan variabel `PORT` dari platform dipakai otomatis.
 
 ## About Laravel
 

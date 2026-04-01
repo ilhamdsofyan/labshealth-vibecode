@@ -38,7 +38,7 @@ COPY vite.config.js ./
 COPY .env.example ./.env
 RUN npm run build
 
-FROM php:8.3-apache
+FROM php:8.3-cli
 
 WORKDIR /var/www/html
 
@@ -59,12 +59,6 @@ RUN apt-get update && apt-get install -y \
         opcache \
         pdo_mysql \
         zip \
-    && rm -f /etc/apache2/mods-enabled/mpm_*.load /etc/apache2/mods-enabled/mpm_*.conf \
-    && ln -s /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load \
-    && ln -s /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf \
-    && a2enmod rewrite headers expires \
-    && sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf \
-    && sed -ri -e 's!/var/www/!/var/www/html/public!g' /etc/apache2/apache2.conf \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . .
@@ -77,7 +71,7 @@ RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framewor
 COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint-app
 RUN chmod +x /usr/local/bin/docker-entrypoint-app
 
-EXPOSE 80
+EXPOSE 8080
 
 ENTRYPOINT ["docker-entrypoint-app"]
-CMD ["apache2-foreground"]
+CMD ["sh", "-c", "php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
