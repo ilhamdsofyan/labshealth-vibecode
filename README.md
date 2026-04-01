@@ -7,6 +7,45 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Docker Deployment
+
+Project ini sudah siap dijalankan dalam Docker tanpa container database lokal. Database diarahkan ke host eksternal melalui variabel `.env`.
+
+### File yang disediakan
+
+- `Dockerfile`
+- `docker-compose.yml`
+- `.dockerignore`
+- `.env.docker.example`
+
+### Langkah cepat
+
+1. Salin `.env.docker.example` ke `.env` atau sesuaikan `.env` yang ada.
+2. Isi `APP_URL`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, dan `DB_PASSWORD` dengan kredensial database eksternal.
+3. Generate `APP_KEY` bila belum ada:
+
+```bash
+php artisan key:generate
+```
+
+4. Build dan jalankan container:
+
+```bash
+docker compose up -d --build
+```
+
+5. Jika ingin migrasi otomatis saat startup, set:
+
+```env
+RUN_MIGRATIONS=true
+```
+
+### Catatan
+
+- Container expose aplikasi ke port `${APP_PORT}` dan default-nya `8002`.
+- `DB_HOST` jangan pakai `localhost` kecuali database memang berjalan di dalam container yang sama.
+- Runtime menggunakan Apache + PHP 8.3 dan asset Vite dibuild ke image saat proses build.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

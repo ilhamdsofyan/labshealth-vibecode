@@ -1,0 +1,11 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: labshealth-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8002}:80"
+    env_file:
+      - .env
