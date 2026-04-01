@@ -5,6 +5,7 @@ FROM php:8.3-cli AS vendor
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
+    unzip \
     libpng-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
@@ -21,6 +22,7 @@ RUN composer install \
     --no-dev \
     --no-interaction \
     --prefer-dist \
+    --no-scripts \
     --optimize-autoloader
 
 FROM node:22-alpine AS assets

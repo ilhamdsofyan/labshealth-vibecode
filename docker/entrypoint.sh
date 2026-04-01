@@ -5,6 +5,7 @@ mkdir -p storage/framework/cache storage/framework/sessions storage/framework/vi
 chown -R www-data:www-data storage bootstrap/cache
 
 php artisan storage:link || true
+php artisan package:discover --ansi || true
 
 if [ "${APP_ENV:-production}" = "production" ]; then
     php artisan optimize:clear || true
