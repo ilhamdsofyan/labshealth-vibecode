@@ -42,13 +42,7 @@
                         <tr>
                             <td class="fw-medium">
                                 <div class="d-flex align-items-center gap-2">
-                                    @if($user->avatar_url)
-                                        <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">
-                                    @else
-                                        <div class="user-avatar" style="width:30px;height:30px;font-size:0.7rem;background:{{ $user->is_active ? '#4F46E5' : '#94A3B8' }};color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;">
-                                            {{ strtoupper(substr($user->name, 0, 1)) }}
-                                        </div>
-                                    @endif
+                                    <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">
                                     {{ $user->name }}
                                 </div>
                             </td>

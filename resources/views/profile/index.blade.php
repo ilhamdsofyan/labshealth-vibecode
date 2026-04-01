@@ -31,14 +31,10 @@
             <div class="card-header">Ringkasan Akun</div>
             <div class="card-body text-center">
                 <div class="mb-3" id="profileAvatarSummaryWrapper">
-                    @if($user->avatar_url)
-                        <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}" class="rounded-circle border shadow-sm mx-auto profile-avatar-preview" id="profileAvatarSummaryImage">
-                    @else
-                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center profile-avatar-preview mx-auto" id="profileAvatarSummaryFallback" style="background: linear-gradient(135deg, var(--accent), var(--primary)); color: #111827; font-size: 2rem; font-weight: 800;">
-                            {{ strtoupper(substr($user->name, 0, 1)) }}
-                        </div>
-                        <img src="" alt="{{ $user->name }}" class="rounded-circle border shadow-sm mx-auto profile-avatar-preview d-none" id="profileAvatarSummaryImage">
-                    @endif
+                    <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}" class="rounded-circle border shadow-sm mx-auto profile-avatar-preview" id="profileAvatarSummaryImage">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center profile-avatar-preview mx-auto d-none" id="profileAvatarSummaryFallback" style="background: linear-gradient(135deg, var(--accent), var(--primary)); color: #111827; font-size: 2rem; font-weight: 800;">
+                        {{ strtoupper(substr($user->name, 0, 1)) }}
+                    </div>
                 </div>
 
                 <h5 class="fw-bold mb-1">{{ $user->name }}</h5>
@@ -46,6 +42,17 @@
 
                 <div class="small text-muted">Status akun</div>
                 <div class="fw-semibold mb-3">{{ $user->is_active ? 'Aktif' : 'Nonaktif' }}</div>
+
+                <div class="small text-muted mb-3">
+                    Sumber avatar:
+                    @if($user->avatar_source === 'user')
+                        Avatar akun pribadi
+                    @elseif($user->avatar_source === 'employee')
+                        Fallback dari master pegawai
+                    @else
+                        Avatar default sistem
+                    @endif
+                </div>
 
                 @if($user->employee)
                     <div class="border rounded-3 p-3 text-start bg-light-subtle mb-3">
@@ -67,7 +74,7 @@
                     </a>
                 @endif
 
-                @if($user->avatar)
+                @if($user->avatar_source === 'user')
                     <form method="POST" action="{{ route('profile.avatar.remove') }}">
                         @csrf
                         @method('DELETE')
@@ -101,13 +108,13 @@
                             <label class="form-label small fw-semibold">Avatar</label>
                             <div class="text-center border rounded-3 p-3 bg-light-subtle mb-3">
                                 <img
-                                    src="{{ old('avatar_cropped_data', $user->avatar_url ?: '') }}"
+                                    src="{{ old('avatar_cropped_data', $user->avatar_url) }}"
                                     alt="Preview Avatar"
-                                    class="rounded-circle border shadow-sm mx-auto profile-avatar-preview {{ old('avatar_cropped_data', $user->avatar_url) ? '' : 'd-none' }}"
+                                    class="rounded-circle border shadow-sm mx-auto profile-avatar-preview"
                                     id="profileAvatarPreview"
                                 >
                                 <div
-                                    class="rounded-circle d-inline-flex align-items-center justify-content-center profile-avatar-preview mx-auto {{ old('avatar_cropped_data', $user->avatar_url) ? 'd-none' : '' }}"
+                                    class="rounded-circle d-inline-flex align-items-center justify-content-center profile-avatar-preview mx-auto d-none"
                                     id="profileAvatarPreviewFallback"
                                     style="background: linear-gradient(135deg, var(--accent), var(--primary)); color: #111827; font-size: 2rem; font-weight: 800;"
                                 >

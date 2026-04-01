@@ -619,11 +619,7 @@
 
             <div class="dropdown user-dropdown">
                 <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    @if(auth()->user()->avatar_url)
-                        <img src="{{ auth()->user()->avatar_url }}" alt="" class="rounded-circle" width="36" height="36">
-                    @else
-                        <div class="user-avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</div>
-                    @endif
+                    <img src="{{ auth()->user()->avatar_url }}" alt="" class="rounded-circle" width="36" height="36" style="object-fit:cover;">
                     <span class="d-none d-sm-inline">{{ auth()->user()->name }}</span>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">

@@ -122,4 +122,9 @@ class User extends Authenticatable
     {
         return UserAvatarHelper::resolveUrl($this);
     }
+
+    public function getAvatarSourceAttribute(): string
+    {
+        return UserAvatarHelper::resolveSource($this);
+    }
 }

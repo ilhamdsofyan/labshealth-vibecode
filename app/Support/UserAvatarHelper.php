@@ -22,6 +22,20 @@ class UserAvatarHelper
         return asset('assets/img/Logo.png');
     }
 
+    public static function resolveSource(User $user): string
+    {
+        if (self::resolveUserAvatar($user->avatar)) {
+            return 'user';
+        }
+
+        $employee = $user->relationLoaded('employee') ? $user->employee : $user->employee()->first();
+        if ($employee && filled($employee->avatar_path) && Storage::disk('public')->exists($employee->avatar_path)) {
+            return 'employee';
+        }
+
+        return 'default';
+    }
+
     private static function resolveUserAvatar(?string $rawAvatar): ?string
     {
         if (! filled($rawAvatar)) {
