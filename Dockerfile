@@ -59,7 +59,8 @@ RUN apt-get update && apt-get install -y \
         opcache \
         pdo_mysql \
         zip \
-    && a2enmod rewrite headers expires \
+    && a2dismod mpm_event mpm_worker || true \
+    && a2enmod mpm_prefork rewrite headers expires \
     && sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf \
     && sed -ri -e 's!/var/www/!/var/www/html/public!g' /etc/apache2/apache2.conf \
     && rm -rf /var/lib/apt/lists/*
