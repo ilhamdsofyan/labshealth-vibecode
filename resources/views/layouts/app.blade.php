@@ -652,6 +652,8 @@
     </nav>
 
     <main class="main-content fade-in">
+        <div id="offlineStatusBanner" class="d-none"></div>
+
         @if(session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
@@ -672,6 +674,15 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        window.LabsHealthOfflineConfig = {
+            csrfToken: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            syncUrl: @json(auth()->user()->hasPermission('visits.offline-sync') ? route('visits.offline-sync') : null),
+            createVisitUrl: @json(auth()->user()->hasPermission('visits.create') ? route('visits.create') : null),
+            visitsIndexUrl: @json(auth()->user()->hasPermission('visits.index') ? route('visits.index') : null),
+        };
+    </script>
+    <script src="{{ asset('js/labshealth-offline.js') }}"></script>
 
     <script>
         function toggleSidebar() {
@@ -995,6 +1006,8 @@
         });
 
         document.addEventListener('DOMContentLoaded', function () {
+            window.LabsHealthOffline?.init();
+
             const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
             applyTheme(currentTheme);
 

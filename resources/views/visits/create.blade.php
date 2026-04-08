@@ -15,7 +15,7 @@
 
 <div class="card">
     <div class="card-body">
-        <form method="POST" action="{{ route('visits.store') }}">
+        <form method="POST" action="{{ route('visits.store') }}" class="js-offline-visit-form" data-offline-success-message="Kunjungan disimpan lokal. Akan otomatis disinkronkan saat koneksi kembali.">
             @csrf
             @include('visits._form')
 

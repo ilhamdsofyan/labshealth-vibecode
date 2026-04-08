@@ -14,6 +14,34 @@
 </div>
 
 <div data-master-async-container>
+    <div class="card mb-3 d-none" id="offlineVisitQueueCard">
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+                <div>
+                    <h6 class="fw-bold mb-1">Antrean Kunjungan Lokal</h6>
+                    <p class="text-muted small mb-0">Data di bawah ini masih tersimpan di perangkat ini dan akan otomatis dikirim ke server saat koneksi tersedia.</p>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary d-none" id="offlineVisitSyncButton">
+                    <i class="bi bi-arrow-repeat me-1"></i>Sinkronkan
+                </button>
+            </div>
+            <div class="table-responsive mt-3">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Waktu Lokal</th>
+                            <th>Pasien</th>
+                            <th>Kategori</th>
+                            <th>Keluhan</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="offlineVisitQueueBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- Filters -->
     <div class="card mb-3">
         <div class="card-body">
@@ -223,6 +251,45 @@
         const cancelRestButton = document.getElementById('cancelRestButton');
         let pendingRestContext = null;
 
+        async function renderOfflineQueue() {
+            const queueCard = document.getElementById('offlineVisitQueueCard');
+            const queueBody = document.getElementById('offlineVisitQueueBody');
+            const syncButton = document.getElementById('offlineVisitSyncButton');
+
+            if (!queueCard || !queueBody || !window.LabsHealthOffline) {
+                return;
+            }
+
+            const items = await window.LabsHealthOffline.getPendingVisits();
+            queueCard.classList.toggle('d-none', items.length === 0);
+            syncButton?.classList.toggle('d-none', items.length === 0 || window.LabsHealthOffline.isOffline());
+
+            if (!items.length) {
+                queueBody.innerHTML = '';
+                return;
+            }
+
+            queueBody.innerHTML = items.map(function (item) {
+                const payload = item.payload || {};
+                const localTime = item.created_at
+                    ? new Date(item.created_at).toLocaleString('id-ID')
+                    : '-';
+                const statusLabel = item.last_error
+                    ? `<span class="badge text-bg-danger">Gagal Sync</span><div class="small text-muted mt-1">${item.last_error}</div>`
+                    : `<span class="badge text-bg-warning">Menunggu Sync</span>`;
+
+                return `
+                    <tr>
+                        <td class="small text-nowrap">${localTime}</td>
+                        <td class="small fw-semibold">${payload.patient_name || payload.external_patient_name || '-'}</td>
+                        <td class="small">${payload.patient_category || '-'}</td>
+                        <td class="small">${payload.complaint || '-'}</td>
+                        <td class="small">${statusLabel}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         async function submitVisitToggle(form, toggleInput, extraData = {}) {
             const payload = new FormData(form);
             Object.entries(extraData).forEach(([key, value]) => payload.set(key, value));
@@ -304,6 +371,18 @@
 
             await submitVisitToggle(form, toggleInput);
         });
+
+        document.addEventListener('click', function (e) {
+            const syncButton = e.target.closest('#offlineVisitSyncButton');
+            if (!syncButton) return;
+
+            window.LabsHealthOffline?.syncQueuedVisits({ showNotice: true });
+        });
+
+        renderOfflineQueue();
+        document.addEventListener('labshealth:offline-queue-changed', renderOfflineQueue);
+        document.addEventListener('labshealth:offline-sync-finished', renderOfflineQueue);
+        document.addEventListener('labshealth:network-status', renderOfflineQueue);
     });
 </script>
 @endpush

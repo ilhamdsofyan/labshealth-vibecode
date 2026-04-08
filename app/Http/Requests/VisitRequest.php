@@ -21,7 +21,7 @@ class VisitRequest extends FormRequest
             'patient_category' => ['required', 'in:SMA,GURU,KARYAWAN,UMUM'],
             
             'student_id' => ['required_if:patient_category,SMA', 'nullable', 'exists:students,id'],
-            'employee_id' => ['required_if:patient_category,GURU,patient_category,KARYAWAN', 'nullable', 'exists:employees,id'],
+            'employee_id' => ['required_if:patient_category,GURU,KARYAWAN', 'nullable', 'exists:employees,id'],
             'disease_names' => ['required', 'array', 'min:1'],
             'disease_names.*' => ['required', 'string', 'max:255'],
             'medication_names' => ['nullable', 'array'],

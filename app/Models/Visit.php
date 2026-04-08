@@ -42,6 +42,7 @@ class Visit extends Model
         'acc_pulang_reason',
         'class_at_visit',
         'created_by',
+        'offline_client_uuid',
     ];
 
     protected function casts(): array

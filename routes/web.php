@@ -58,6 +58,7 @@ Route::middleware(['auth', 'permission'])->group(function () {
 
     // Visit Recording
     Route::resource('visits', VisitController::class);
+    Route::post('visits/offline-sync', [VisitController::class, 'syncOffline'])->name('visits.offline-sync');
     Route::patch('visits/{visit}/toggle-rest', [VisitController::class, 'toggleRest'])->name('visits.toggle-rest');
     Route::patch('visits/{visit}/toggle-pulang', [VisitController::class, 'togglePulang'])->name('visits.toggle-pulang');
     Route::get('riwayat-kunjungan/siswa/{student}', [VisitorHistoryController::class, 'student'])->name('visitors.students.history');

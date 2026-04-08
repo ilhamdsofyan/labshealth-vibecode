@@ -20,6 +20,15 @@
     </div>
 @endif
 
+<div class="alert alert-info border-0 shadow-sm d-flex flex-wrap align-items-start justify-content-between gap-3" id="visitOfflineHint">
+    <div>
+        <div class="fw-bold mb-1"><i class="bi bi-cloud-arrow-down me-2"></i>Visit bisa disimpan saat offline</div>
+        <div class="small mb-1">Kalau koneksi putus, form ini akan menyimpan kunjungan ke perangkat ini dulu lalu otomatis kirim ke server saat online lagi.</div>
+        <div class="small text-muted">Batasan: pencarian siswa/pegawai saat offline hanya bisa memakai data yang pernah tercache sebelumnya di perangkat ini.</div>
+    </div>
+    <div class="small text-muted" id="visitOfflinePendingInfo">Mengecek antrean lokal...</div>
+</div>
+
 <div class="row g-3">
     <div class="col-md-4 col-6">
         <label class="form-label small fw-semibold">Tanggal Kunjungan <span class="text-danger">*</span></label>
@@ -277,12 +286,30 @@
         $('.select2-ajax').each(function() {
             var url = $(this).data('url');
             var isMultiple = $(this).prop('multiple');
+            var cacheType = this.id === 'student_id' ? 'student' : 'employee';
             $(this).select2({
                 theme: 'bootstrap-5',
                 ajax: {
-                    url: url,
-                    dataType: 'json',
                     delay: 250,
+                    transport: function (params, success, failure) {
+                        var term = params.data && params.data.q ? params.data.q : '';
+
+                        if (window.LabsHealthOffline?.isOffline()) {
+                            window.LabsHealthOffline.searchPatientCache(cacheType, term)
+                                .then(success)
+                                .catch(failure);
+                            return;
+                        }
+
+                        return $.ajax({
+                            url: url,
+                            dataType: 'json',
+                            data: params.data
+                        }).then(function (data) {
+                            window.LabsHealthOffline?.cachePatientResults(cacheType, data);
+                            success(data);
+                        }).catch(failure);
+                    },
                     data: function (params) {
                         return { q: params.term };
                     },
@@ -349,11 +376,10 @@
             }
         });
 
-        // Handle disabled gender select before form submit
-        $('form').on('submit', function() {
+        function flushPendingTagInput($form) {
             $('#genderSelect').prop('disabled', false);
 
-            $('.tag-suggestion-field').each(function () {
+            $form.find('.tag-suggestion-field').each(function () {
                 const $field = $(this);
                 const $input = $field.find('.tag-input-control');
                 const inputName = $field.data('name');
@@ -373,6 +399,116 @@
                         name: inputName + '[]',
                         value: value
                     }).appendTo($field.find('.tag-hidden-inputs'));
+                }
+            });
+        }
+
+        function formDataToPayload(form) {
+            const formData = new FormData(form);
+            const payload = {};
+
+            formData.forEach(function (value, key) {
+                if (key.endsWith('[]')) {
+                    const normalizedKey = key.slice(0, -2);
+                    if (!Array.isArray(payload[normalizedKey])) {
+                        payload[normalizedKey] = [];
+                    }
+                    payload[normalizedKey].push(value);
+                    return;
+                }
+
+                payload[key] = value;
+            });
+
+            payload.is_acc_pulang = payload.is_acc_pulang === '1' ? '1' : '0';
+            return payload;
+        }
+
+        function validateOfflineVisitPayload(payload) {
+            const errors = [];
+            const category = (payload.patient_category || '').trim();
+
+            if (category === 'SMA' && !payload.student_id) {
+                errors.push('Pilih siswa terlebih dahulu sebelum menyimpan offline.');
+            }
+
+            if ((category === 'GURU' || category === 'KARYAWAN') && !payload.employee_id) {
+                errors.push('Pilih pegawai terlebih dahulu sebelum menyimpan offline.');
+            }
+
+            if (category === 'UMUM' && !String(payload.external_patient_name || '').trim()) {
+                errors.push('Nama pasien umum wajib diisi.');
+            }
+
+            if (!Array.isArray(payload.disease_names) || payload.disease_names.length === 0) {
+                errors.push('Diagnosa/Penyakit minimal harus diisi 1.');
+            }
+
+            if (payload.is_acc_pulang === '1' && !String(payload.acc_pulang_reason || '').trim()) {
+                errors.push('Alasan Acc Pulang wajib diisi jika statusnya aktif.');
+            }
+
+            return errors;
+        }
+
+        async function updateOfflinePendingInfo() {
+            const pendingInfo = document.getElementById('visitOfflinePendingInfo');
+            if (!pendingInfo || !window.LabsHealthOffline) return;
+
+            const count = await window.LabsHealthOffline.countPendingVisits();
+            pendingInfo.textContent = count > 0
+                ? count + ' kunjungan lokal menunggu sinkronisasi.'
+                : 'Belum ada antrean lokal.';
+        }
+
+        // Handle disabled gender select before form submit
+        $('form').on('submit', function(event) {
+            const form = this;
+            const $form = $(form);
+            flushPendingTagInput($form);
+
+            if (!form.classList.contains('js-offline-visit-form')) {
+                return;
+            }
+
+            if (!window.LabsHealthOffline?.isOffline()) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (!form.reportValidity()) {
+                return;
+            }
+
+            const payload = formDataToPayload(form);
+            const validationErrors = validateOfflineVisitPayload(payload);
+
+            if (validationErrors.length > 0) {
+                if (window.showAsyncAlert) {
+                    window.showAsyncAlert('danger', validationErrors[0]);
+                }
+                return;
+            }
+
+            window.LabsHealthOffline.queueVisit(payload).then(async function () {
+                if (window.showAsyncAlert) {
+                    window.showAsyncAlert('success', form.dataset.offlineSuccessMessage || 'Kunjungan disimpan lokal.');
+                }
+
+                form.reset();
+                $('#student_id, #employee_id').val(null).trigger('change');
+                $('.tag-hidden-inputs').empty();
+                $('.tag-input-selected').empty();
+                $('.tag-input-control').val('');
+                $('#hidden_patient_name').val('');
+                $('#reasonWrapper').addClass('d-none');
+                updateFormUI();
+                await updateOfflinePendingInfo();
+                window.LabsHealthOffline.renderStatusBanner();
+            }).catch(function () {
+                if (window.showAsyncAlert) {
+                    window.showAsyncAlert('danger', 'Kunjungan gagal disimpan lokal di perangkat ini.');
                 }
             });
         });
@@ -513,6 +649,11 @@
         $('.tag-suggestion-field').each(function () {
             initializeTagSuggestionField($(this));
         });
+
+        updateOfflinePendingInfo();
+
+        document.addEventListener('labshealth:offline-queue-changed', updateOfflinePendingInfo);
+        document.addEventListener('labshealth:offline-sync-finished', updateOfflinePendingInfo);
     });
 </script>
 @endpush

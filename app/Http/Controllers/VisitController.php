@@ -6,11 +6,14 @@ use App\Http\Requests\VisitRequest;
 use App\Models\Bed;
 use App\Models\Disease;
 use App\Models\Medication;
+use App\Models\Student;
 use App\Models\Visit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class VisitController extends Controller
@@ -85,37 +88,7 @@ class VisitController extends Controller
 
     public function store(VisitRequest $request): RedirectResponse
     {
-        $data = $request->validated();
-        $diseaseIds = $this->resolveDiseaseIds($data['disease_names'] ?? []);
-        $medicationIds = $this->resolveMedicationIds($data['medication_names'] ?? []);
-        unset($data['disease_names'], $data['medication_names']);
-
-        $data['disease_id'] = $diseaseIds[0] ?? null;
-        $data['medication_id'] = $medicationIds[0] ?? null;
-        $data['created_by'] = auth()->id();
-        $data['visit_type'] = 'kunjungan'; // compatibility
-        
-        // Snapshot class for students and category-specific cleanups
-        if ($data['patient_category'] === 'SMA' && $request->filled('student_id')) {
-            $student = \App\Models\Student::find($request->student_id);
-            $data['class_at_visit'] = $student->activeClass?->class_name ?? $data['class_or_department'];
-            $data['external_patient_name'] = null;
-            $data['additional_info'] = null;
-            $data['employee_id'] = null;
-        } elseif (in_array($data['patient_category'], ['GURU', 'KARYAWAN'])) {
-            $data['class_or_department'] = null; // staff doesn't need class_or_department in this context or handled by employee data
-            $data['student_id'] = null;
-            $data['external_patient_name'] = null;
-            $data['additional_info'] = null;
-        } elseif ($data['patient_category'] === 'UMUM') {
-            $data['student_id'] = null;
-            $data['employee_id'] = null;
-            $data['patient_name'] = $data['external_patient_name'];
-        }
-
-        $visit = Visit::create($data);
-        $visit->diseases()->sync($diseaseIds);
-        $visit->medications()->sync($medicationIds);
+        $visit = $this->persistVisit($request->validated());
 
         return redirect()->route('visits.index')
             ->with('success', 'Data kunjungan berhasil disimpan.');
@@ -179,6 +152,79 @@ class VisitController extends Controller
 
         return redirect()->route('visits.index')
             ->with('success', 'Data kunjungan berhasil diperbarui.');
+    }
+
+    public function syncOffline(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'items' => ['required', 'array', 'min:1', 'max:50'],
+            'items.*.client_uuid' => ['required', 'string', 'max:100'],
+            'items.*.payload' => ['required', 'array'],
+        ]);
+
+        $synced = [];
+        $failed = [];
+        $visitRequest = new VisitRequest();
+
+        foreach ($validated['items'] as $item) {
+            $clientUuid = trim((string) $item['client_uuid']);
+            $payload = is_array($item['payload']) ? $item['payload'] : [];
+
+            if (! Str::isUuid($clientUuid)) {
+                $failed[] = [
+                    'client_uuid' => $clientUuid,
+                    'message' => 'Format identitas sinkronisasi tidak valid.',
+                ];
+                continue;
+            }
+
+            $existingVisit = Visit::query()
+                ->select(['id', 'offline_client_uuid'])
+                ->where('offline_client_uuid', $clientUuid)
+                ->first();
+
+            if ($existingVisit) {
+                $synced[] = [
+                    'client_uuid' => $clientUuid,
+                    'visit_id' => $existingVisit->id,
+                    'status' => 'duplicate',
+                ];
+                continue;
+            }
+
+            $validator = Validator::make($payload, $visitRequest->rules(), $visitRequest->messages());
+
+            if ($validator->fails()) {
+                $failed[] = [
+                    'client_uuid' => $clientUuid,
+                    'message' => $validator->errors()->first(),
+                    'errors' => $validator->errors()->toArray(),
+                ];
+                continue;
+            }
+
+            try {
+                $visit = $this->persistVisit($validator->validated(), $clientUuid);
+                $synced[] = [
+                    'client_uuid' => $clientUuid,
+                    'visit_id' => $visit->id,
+                    'status' => 'created',
+                ];
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                $failed[] = [
+                    'client_uuid' => $clientUuid,
+                    'message' => 'Sinkronisasi kunjungan gagal diproses di server.',
+                ];
+            }
+        }
+
+        return response()->json([
+            'message' => count($synced) . ' kunjungan berhasil disinkronkan.',
+            'synced' => $synced,
+            'failed' => $failed,
+        ], count($failed) > 0 ? 207 : 200);
     }
 
     public function destroy(Visit $visit): RedirectResponse|JsonResponse
@@ -377,5 +423,42 @@ class VisitController extends Controller
             ->map(fn ($value) => trim((string) $value))
             ->filter(fn ($value) => $value !== '')
             ->values();
+    }
+
+    private function persistVisit(array $data, ?string $offlineClientUuid = null): Visit
+    {
+        $diseaseIds = $this->resolveDiseaseIds($data['disease_names'] ?? []);
+        $medicationIds = $this->resolveMedicationIds($data['medication_names'] ?? []);
+        unset($data['disease_names'], $data['medication_names']);
+
+        $data['disease_id'] = $diseaseIds[0] ?? null;
+        $data['medication_id'] = $medicationIds[0] ?? null;
+        $data['created_by'] = auth()->id();
+        $data['visit_type'] = 'kunjungan';
+        $data['offline_client_uuid'] = $offlineClientUuid;
+
+        if (($data['patient_category'] ?? null) === 'SMA' && ! empty($data['student_id'])) {
+            $student = Student::query()->with('activeClass:id,student_id,class_name')->find($data['student_id']);
+            $data['class_at_visit'] = $student?->activeClass?->class_name ?? ($data['class_or_department'] ?? null);
+            $data['external_patient_name'] = null;
+            $data['additional_info'] = null;
+            $data['employee_id'] = null;
+        } elseif (in_array($data['patient_category'] ?? null, ['GURU', 'KARYAWAN'], true)) {
+            $data['class_or_department'] = null;
+            $data['student_id'] = null;
+            $data['external_patient_name'] = null;
+            $data['additional_info'] = null;
+        } elseif (($data['patient_category'] ?? null) === 'UMUM') {
+            $data['student_id'] = null;
+            $data['employee_id'] = null;
+            $data['class_at_visit'] = null;
+            $data['patient_name'] = $data['external_patient_name'] ?? $data['patient_name'];
+        }
+
+        $visit = Visit::create($data);
+        $visit->diseases()->sync($diseaseIds);
+        $visit->medications()->sync($medicationIds);
+
+        return $visit;
     }
 }
