@@ -309,6 +309,11 @@
                 let body = {};
                 try { body = await response.json(); } catch (_) {}
 
+                if (response.status === 419) {
+                    window.handleSessionExpired?.(body.message, body.reload_url);
+                    return;
+                }
+
                 if (!response.ok) {
                     throw new Error(body.message || 'Gagal memperbarui status.');
                 }

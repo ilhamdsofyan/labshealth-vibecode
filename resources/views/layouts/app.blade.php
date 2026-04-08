@@ -674,6 +674,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         window.LabsHealthOfflineConfig = {
             csrfToken: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
@@ -723,6 +724,19 @@
             `;
 
             mainContent.prepend(alert);
+        }
+
+        function handleSessionExpired(message, reloadUrl) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Sesi Berakhir',
+                text: message || 'Sesi Anda sudah berakhir. Halaman akan dimuat ulang.',
+                confirmButtonText: 'Oke',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+            }).then(() => {
+                window.location.replace(reloadUrl || window.location.href);
+            });
         }
 
         function getAsyncOverlayTarget(container) {
@@ -799,6 +813,11 @@
                         'X-Requested-With': 'XMLHttpRequest',
                     },
                 });
+
+                if (response.status === 419) {
+                    handleSessionExpired('Sesi Anda sudah berakhir. Halaman akan dimuat ulang.');
+                    return false;
+                }
 
                 if (!response.ok) {
                     throw new Error('Gagal memuat data.');
@@ -894,6 +913,11 @@
 
                 let body = {};
                 try { body = await response.json(); } catch (_) {}
+
+                if (response.status === 419) {
+                    handleSessionExpired(body.message, body.reload_url);
+                    return;
+                }
 
                 if (response.status === 422) {
                     applyFormValidation(form, body.errors || {});
@@ -1036,6 +1060,11 @@
                         'X-Requested-With': 'XMLHttpRequest',
                     },
                 });
+
+                if (response.status === 419) {
+                    handleSessionExpired('Sesi Anda sudah berakhir. Halaman akan dimuat ulang.');
+                    throw new Error('Sesi berakhir.');
+                }
 
                 if (!response.ok) {
                     throw new Error('Gagal mencari data pengunjung.');
