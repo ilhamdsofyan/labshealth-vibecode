@@ -66,6 +66,7 @@ Route::middleware(['auth', 'permission'])->group(function () {
     // Reports
     Route::get('reports/monthly', [ReportController::class, 'monthly'])->name('reports.monthly');
     Route::get('reports/acc-pulang', [ReportController::class, 'accPulang'])->name('reports.acc-pulang');
+    Route::get('reports/stock', [ReportController::class, 'stock'])->name('reports.stock');
     Route::get('reports/analytics', [ReportController::class, 'analytics'])->name('reports.analytics');
     Route::get('reports/export-excel', [ReportController::class, 'exportExcel'])->name('reports.export-excel');
     Route::get('reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');

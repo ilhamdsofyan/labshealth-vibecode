@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Dashboard')
 
@@ -136,6 +136,19 @@
 </style>
 
 <div class="dash-shell">
+    @if($lowStockMedications->isNotEmpty())
+        <div class="alert alert-warning border-warning border-start border-4 shadow-sm mb-0 d-flex align-items-center" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-4 text-warning me-3"></i>
+            <div>
+                <strong>Perhatian!</strong> Ada stok obat/item yang menipis atau habis: 
+                @foreach($lowStockMedications as $stock)
+                    <span class="badge bg-warning text-dark">{{ $stock->medication->name ?? 'Unknown' }} ({{ $stock->quantity }} {{ $stock->unit }})</span>
+                @endforeach
+                <a href="{{ route('admin.master.medications.index') }}" class="alert-link ms-2"><i class="bi bi-arrow-right me-1"></i>Kelola Stok</a>
+            </div>
+        </div>
+    @endif
+
     <div class="row">
         <div class="hero-panel col-lg-9">
             <div>

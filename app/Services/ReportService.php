@@ -100,6 +100,46 @@ class ReportService
         ];
     }
 
+    public function getStockReport(int $month, int $year): array
+    {
+        $startDate = \Carbon\Carbon::create($year, $month, 1)->startOfMonth();
+        $endDate = $startDate->copy()->endOfMonth();
+
+        $medications = \App\Models\Medication::with(['stock'])->get();
+
+        $reportData = [];
+
+        foreach ($medications as $medication) {
+            $logs = DB::table('medication_stock_logs')
+                ->where('medication_id', $medication->id)
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->get();
+
+            // adjust logs when 'adjust' with quantity > 0 means stock was incremented
+            // but we also have 'in' for explicit restock.
+            $usage = $logs->where('change_type', 'out')->sum('quantity');
+            $restock = $logs->where('change_type', 'in')->sum('quantity');
+
+            // For 'adjust', we will count positive adjustments as restock and negative as usage?
+            // Actually, for simplicity, 'in' is restock, 'out' is usage.
+            // Adjustments are just corrections. If we want, we can merge them:
+            // But since 'adjust' logs already specify the delta in 'quantity' and we map actualChangeType in the controller to 'in' or 'out', 'adjust' is technically only used when $changeQuantity = 0.
+            // Oh right, in the controller I mapped 'adjust' to 'in' or 'out' based on difference!
+
+            $reportData[] = [
+                'medication_id' => $medication->id,
+                'name' => $medication->name,
+                'category' => $medication->category,
+                'current_stock' => $medication->stock ? $medication->stock->quantity : 0,
+                'unit' => $medication->stock ? $medication->stock->unit : 'pcs',
+                'usage_count' => $usage,
+                'restock_count' => $restock,
+            ];
+        }
+
+        return collect($reportData)->sortByDesc('usage_count')->values()->all();
+    }
+
     public function getAnalyticsReport(?string $dateFrom = null, ?string $dateTo = null): array
     {
         [$startDate, $endDate] = $this->resolveDateRange($dateFrom, $dateTo);

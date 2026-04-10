@@ -82,6 +82,11 @@ class DashboardController extends Controller
         $sickBayCapacity = $beds->count();
         $sickBayFilled = $activeBedVisits->count();
 
+        $lowStockMedications = \App\Models\MedicationStock::query()
+            ->with('medication:id,name')
+            ->whereColumn('quantity', '<=', 'min_threshold')
+            ->get();
+
         return view('dashboard', compact(
             'todayVisits',
             'categoryStats',
@@ -93,7 +98,8 @@ class DashboardController extends Controller
             'beds',
             'activeBedVisits',
             'sickBayFilled',
-            'sickBayCapacity'
+            'sickBayCapacity',
+            'lowStockMedications'
         ));
     }
 }

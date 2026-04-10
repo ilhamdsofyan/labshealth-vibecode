@@ -9,6 +9,9 @@
         <p class="text-muted mb-0 small">Master data obat dan item terapi untuk kunjungan UKS</p>
     </div>
     <div class="d-flex gap-2">
+        <a href="{{ route('reports.stock') }}" class="btn btn-outline-primary">
+            <i class="bi bi-file-earmark-bar-graph me-1"></i>Laporan Stok
+        </a>
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createMedicationModal">
             <i class="bi bi-plus-lg me-1"></i>Tambah Obat
         </button>
