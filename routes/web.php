@@ -99,6 +99,7 @@ Route::middleware(['auth', 'permission'])->group(function () {
             Route::resource('diseases', DiseaseController::class)->names('diseases')->except(['show']);
 
             Route::get('medications/search', [MedicationController::class, 'search'])->name('medications.search');
+            Route::post('medications/{medication}/restock', [MedicationController::class, 'restock'])->name('medications.restock');
             Route::resource('medications', MedicationController::class)->names('medications')->except(['show']);
         });
 

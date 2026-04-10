@@ -13,4 +13,14 @@ class Medication extends Model
     {
         return $this->belongsToMany(Visit::class)->withTimestamps();
     }
+
+    public function stock(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(MedicationStock::class);
+    }
+
+    public function stockLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(MedicationStockLog::class);
+    }
 }

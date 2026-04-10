@@ -148,7 +148,7 @@ class VisitController extends Controller
 
         $visit->update($data);
         $visit->diseases()->sync($diseaseIds);
-        $visit->medications()->sync($medicationIds);
+        $this->syncMedicationsAndStock($visit, $medicationIds);
 
         return redirect()->route('visits.index')
             ->with('success', 'Data kunjungan berhasil diperbarui.');
@@ -457,8 +457,51 @@ class VisitController extends Controller
 
         $visit = Visit::create($data);
         $visit->diseases()->sync($diseaseIds);
-        $visit->medications()->sync($medicationIds);
+        $this->syncMedicationsAndStock($visit, $medicationIds);
 
         return $visit;
+    }
+
+    private function syncMedicationsAndStock(Visit $visit, array $newMedicationIds): void
+    {
+        $oldMedicationIds = $visit->medications()->pluck('medications.id')->toArray();
+        $visit->medications()->sync($newMedicationIds);
+
+        $addedIds = array_diff($newMedicationIds, $oldMedicationIds);
+        $removedIds = array_diff($oldMedicationIds, $newMedicationIds);
+
+        $creatorId = auth()->id();
+
+        foreach ($addedIds as $medId) {
+            $stock = \App\Models\MedicationStock::firstOrCreate(
+                ['medication_id' => $medId],
+                ['quantity' => 0, 'unit' => 'pcs', 'min_threshold' => 10]
+            );
+            $stock->decrement('quantity');
+
+            \App\Models\MedicationStockLog::create([
+                'medication_id' => $medId,
+                'change_type' => 'out',
+                'quantity' => 1,
+                'notes' => 'Diberikan pada kunjungan pasien id: ' . $visit->id,
+                'created_by' => $creatorId,
+            ]);
+        }
+
+        foreach ($removedIds as $medId) {
+            $stock = \App\Models\MedicationStock::firstOrCreate(
+                ['medication_id' => $medId],
+                ['quantity' => 0, 'unit' => 'pcs', 'min_threshold' => 10]
+            );
+            $stock->increment('quantity');
+
+            \App\Models\MedicationStockLog::create([
+                'medication_id' => $medId,
+                'change_type' => 'in',
+                'quantity' => 1,
+                'notes' => 'Dikembalikan dari pembatalan obat kunjungan pasien id: ' . $visit->id,
+                'created_by' => $creatorId,
+            ]);
+        }
     }
 }

@@ -28,7 +28,7 @@ class MedicationController extends Controller
 
     public function index(Request $request): View
     {
-        $query = Medication::query();
+        $query = Medication::query()->with('stock');
         $categorySuggestions = Medication::query()
             ->whereNotNull('category')
             ->where('category', '!=', '')
@@ -99,6 +99,67 @@ class MedicationController extends Controller
 
         return redirect()->route('admin.master.medications.index')
             ->with('success', 'Data obat berhasil diperbarui.');
+    }
+
+    public function restock(Request $request, Medication $medication): RedirectResponse|JsonResponse
+    {
+        $validated = $request->validate([
+            'action_type' => ['required', 'in:in,out,adjust'],
+            'quantity' => ['required', 'integer', 'min:0'],
+            'unit' => ['required', 'string', 'max:50'],
+            'min_threshold' => ['required', 'integer', 'min:0'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $stock = $medication->stock()->firstOrCreate(
+            [],
+            ['quantity' => 0, 'unit' => $validated['unit'], 'min_threshold' => $validated['min_threshold']]
+        );
+
+        $oldQuantity = $stock->quantity;
+        $changeQuantity = $validated['quantity'];
+        $actualChangeType = $validated['action_type'];
+        
+        if ($validated['action_type'] === 'in') {
+            $stock->quantity += $changeQuantity;
+            $stock->last_restocked_at = now();
+        } elseif ($validated['action_type'] === 'out') {
+            $stock->quantity -= $changeQuantity;
+        } elseif ($validated['action_type'] === 'adjust') {
+            if ($validated['quantity'] > $oldQuantity) {
+                $actualChangeType = 'in';
+                $changeQuantity = $validated['quantity'] - $oldQuantity;
+            } elseif ($validated['quantity'] < $oldQuantity) {
+                $actualChangeType = 'out';
+                $changeQuantity = $oldQuantity - $validated['quantity'];
+            } else {
+                $actualChangeType = 'adjust';
+                $changeQuantity = 0;
+            }
+            $stock->quantity = $validated['quantity'];
+        }
+
+        $stock->unit = $validated['unit'];
+        $stock->min_threshold = $validated['min_threshold'];
+        $stock->save();
+
+        if ($changeQuantity > 0 || $actualChangeType === 'adjust') {
+            $medication->stockLogs()->create([
+                'change_type' => $actualChangeType,
+                'quantity' => $changeQuantity,
+                'notes' => $validated['notes'],
+                'created_by' => auth()->id(),
+            ]);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Stok obat berhasil diperbarui.',
+            ]);
+        }
+
+        return redirect()->route('admin.master.medications.index')
+            ->with('success', 'Stok obat berhasil diperbarui.');
     }
 
     public function destroy(Medication $medication): RedirectResponse|JsonResponse
