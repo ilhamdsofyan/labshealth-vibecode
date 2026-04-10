@@ -52,9 +52,7 @@ Route::middleware(['auth', 'permission'])->group(function () {
 
     // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('agendas', [ClinicAgendaController::class, 'index'])->name('agendas.index');
-    Route::get('agendas/create', [ClinicAgendaController::class, 'create'])->name('agendas.create');
-    Route::post('agendas', [ClinicAgendaController::class, 'store'])->name('agendas.store');
+    Route::resource('agendas', ClinicAgendaController::class)->except(['show']);
 
     // Visit Recording
     Route::resource('visits', VisitController::class);
@@ -91,17 +89,17 @@ Route::middleware(['auth', 'permission'])->group(function () {
             Route::get('students/search', [StudentController::class, 'search'])->name('students.search');
             Route::put('students/{student}/detail', [StudentController::class, 'updateDetail'])->name('students.update-detail');
             Route::delete('students/{student}/avatar', [StudentController::class, 'removeAvatar'])->name('students.remove-avatar');
-            Route::resource('students', StudentController::class)->names('students');
+            Route::resource('students', StudentController::class)->names('students')->except(['show']);
 
             Route::get('employees/search', [EmployeeController::class, 'search'])->name('employees.search');
             Route::delete('employees/{employee}/avatar', [EmployeeController::class, 'removeAvatar'])->name('employees.remove-avatar');
-            Route::resource('employees', EmployeeController::class)->names('employees');
+            Route::resource('employees', EmployeeController::class)->names('employees')->except(['show']);
 
             Route::get('diseases/search', [DiseaseController::class, 'search'])->name('diseases.search');
-            Route::resource('diseases', DiseaseController::class)->names('diseases');
+            Route::resource('diseases', DiseaseController::class)->names('diseases')->except(['show']);
 
             Route::get('medications/search', [MedicationController::class, 'search'])->name('medications.search');
-            Route::resource('medications', MedicationController::class)->names('medications');
+            Route::resource('medications', MedicationController::class)->names('medications')->except(['show']);
         });
 
         // Import Legacy Data

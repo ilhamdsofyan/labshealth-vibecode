@@ -64,4 +64,51 @@ class ClinicAgendaController extends Controller
 
         return redirect()->route('agendas.index')->with('success', 'Agenda klinik berhasil ditambahkan.');
     }
+
+    public function edit(ClinicAgenda $agenda): RedirectResponse|JsonResponse
+    {
+        if (request()->expectsJson()) {
+            return response()->json($agenda);
+        }
+        return redirect()->route('agendas.index');
+    }
+
+    public function update(Request $request, ClinicAgenda $agenda): RedirectResponse|JsonResponse
+    {
+        $validated = $request->validate([
+            'agenda_date' => ['required', 'date'],
+            'agenda_time' => ['nullable', 'date_format:H:i:s,H:i'],
+            'title' => ['required', 'string', 'max:150'],
+            'location' => ['nullable', 'string', 'max:150'],
+            'description' => ['nullable', 'string'],
+            'is_public' => ['nullable', 'boolean'],
+        ]);
+
+        $canChooseVisibility = auth()->user()?->isSuperAdmin() || auth()->user()?->hasRole('admin');
+        if ($canChooseVisibility && $request->has('is_public')) {
+            $validated['is_public'] = (bool) ($request->boolean('is_public'));
+        }
+
+        $agenda->update($validated);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Agenda klinik berhasil diperbarui.',
+            ]);
+        }
+
+        return redirect()->route('agendas.index')->with('success', 'Agenda klinik berhasil diperbarui.');
+    }
+
+    public function destroy(ClinicAgenda $agenda): RedirectResponse|JsonResponse
+    {
+        $agenda->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'message' => 'Agenda klinik berhasil dihapus.',
+            ]);
+        }
+
+        return redirect()->route('agendas.index')->with('success', 'Agenda klinik berhasil dihapus.');
 }
