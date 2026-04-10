@@ -43,6 +43,8 @@ class Visit extends Model
         'class_at_visit',
         'created_by',
         'offline_client_uuid',
+        'external_patient_name',
+        'additional_info',
     ];
 
     protected function casts(): array
